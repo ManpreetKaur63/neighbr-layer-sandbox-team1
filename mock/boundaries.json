@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature", "id": "windsor-extent",
+      "properties": { "id": "windsor-extent", "cityId": "windsor", "name": "Windsor (rough extent)", "description": "A rough rectangle for demonstration. Not the municipal boundary.", "authority": "illustrative" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-83.105, 42.245], [-82.925, 42.245], [-82.925, 42.335], [-83.105, 42.335], [-83.105, 42.245]]] }
+    },
+    {
+      "type": "Feature", "id": "downtown-windsor",
+      "properties": { "id": "downtown-windsor", "cityId": "windsor", "name": "Downtown Windsor (illustrative)", "description": "Illustrative area around the riverfront and Ouellette Avenue. Not an official district.", "authority": "illustrative" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-83.050, 42.306], [-83.022, 42.306], [-83.022, 42.319], [-83.050, 42.319], [-83.050, 42.306]]] }
+    },
+    {
+      "type": "Feature", "id": "olde-riverside-corridor",
+      "properties": { "id": "olde-riverside-corridor", "cityId": "windsor", "name": "Olde Riverside corridor (illustrative)", "description": "Wyandotte Street East from Thompson to Glidden, as named in the Olde Riverside consultation. Positions here are approximate placeholders. Replace with vetted geometry before any real use.", "authority": "illustrative" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-82.9952, 42.3232], [-82.9652, 42.3294], [-82.9650, 42.3288], [-82.9950, 42.3226], [-82.9952, 42.3232]]] }
+    },
+    {
+      "type": "Feature", "id": "toronto-core",
+      "properties": { "id": "toronto-core", "cityId": "toronto", "name": "Downtown Toronto (rough extent)", "description": "A rough rectangle for demonstration.", "authority": "illustrative" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-79.41, 43.635], [-79.355, 43.635], [-79.355, 43.675], [-79.41, 43.675], [-79.41, 43.635]]] }
+    },
+    {
+      "type": "Feature", "id": "detroit-downtown",
+      "properties": { "id": "detroit-downtown", "cityId": "detroit", "name": "Downtown Detroit (rough extent)", "description": "A rough rectangle for demonstration.", "authority": "illustrative" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-83.075, 42.322], [-83.025, 42.322], [-83.025, 42.345], [-83.075, 42.345], [-83.075, 42.322]]] }
+    }
+  ]
+}

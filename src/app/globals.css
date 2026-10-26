@@ -1,0 +1,105 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* Design tokens. Colours come from the Neighbr greens; type is sized for older readers (16px minimum). */
+:root {
+  --forest: #0a3a2d;
+  --forest-2: #14574a;
+  --lime: #cfe98b;
+  --paper: #fbfcf7;
+  --paper-2: #f0f5ea;
+  --ink: #14241d;
+  --ink-soft: #46574f;
+  --line: #d6e0d3;
+  --line-strong: #aebdaa;
+  --river: #23809f;
+  --alert: #c4501b;
+  --ok: #1f7a4d;
+  --warn: #9a6a00;
+  --focus: #1747c9;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow: 0 6px 24px rgba(10, 58, 45, 0.18);
+
+  --font: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+  --text-base: 1.0625rem; /* 17px */
+  --text-small: 0.9375rem; /* 15px, used only for secondary metadata */
+  --leading: 1.5;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--text-base);
+  line-height: var(--leading);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+a { color: var(--forest-2); }
+button, input { font: inherit; color: inherit; }
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Page chrome for non-map routes. */
+.page { max-width: 62rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+.page h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0.5rem 0; }
+.page p { max-width: 62ch; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 1.4rem; border-radius: 999px;
+  border: 2px solid var(--forest); background: var(--forest); color: #fff;
+  font-weight: 700; text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: var(--forest-2); border-color: var(--forest-2); }
+.btn.secondary { background: transparent; color: var(--forest); }
+.btn.secondary:hover { background: var(--paper-2); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.25rem 0; }
+.notice {
+  border-left: 5px solid var(--lime); background: var(--paper-2);
+  padding: 0.75rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; max-width: 62ch;
+}
+table.matrix { border-collapse: collapse; width: 100%; font-size: var(--text-small); }
+table.matrix th, table.matrix td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.matrix th { background: var(--paper-2); }
+
+/* MapLibre controls: keep them clear of the Beacon slot. */
+.maplibregl-ctrl-bottom-right { bottom: 84px; }
+.maplibregl-ctrl-attrib { font-size: 12px; }
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Shared content styles (M04: pulse, polls, alerts, notifications). */
+.card {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem; margin: 1rem 0; box-shadow: var(--shadow); max-width: 70ch;
+}
+.pill-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink);
+  border-radius: 999px; padding: 0.35rem 0.8rem; font-size: var(--text-small); font-weight: 600;
+  cursor: pointer; text-decoration: none; font-family: inherit;
+}
+.pill:hover { background: var(--paper-2); }
+.pill.active { border-color: var(--forest); color: var(--forest); background: var(--paper-2); }
+.pill:disabled { opacity: 0.55; cursor: default; }
+.badge {
+  display: inline-block; padding: 0.2rem 0.7rem; border-radius: 999px;
+  background: var(--paper-2); border: 1px solid var(--line-strong);
+  font-size: var(--text-small); font-weight: 600;
+}
+.badge.ok { border-color: var(--ok); color: var(--ok); }
+.muted { color: var(--ink-soft); }
+.lede { font-size: 1.125rem; max-width: 62ch; }

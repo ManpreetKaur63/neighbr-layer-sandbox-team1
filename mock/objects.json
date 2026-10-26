@@ -1,0 +1,712 @@
+[
+  {
+    "id": "w-bakery",
+    "kind": "business",
+    "title": "Sample Riverside Bakery",
+    "summary": "Fictional corner bakery on the corridor. Used to show a business profile and its public status.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.989,
+        42.3243
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "food",
+      "corridor"
+    ],
+    "synthetic": true,
+    "workspaceId": "ws-biz-bakery"
+  },
+  {
+    "id": "w-hardware",
+    "kind": "business",
+    "title": "Sample Hardware & Garden",
+    "summary": "Fictional hardware shop. Roadworks nearby affect customer access.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.98,
+        42.3262
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "retail",
+      "corridor"
+    ],
+    "synthetic": true,
+    "workspaceId": "ws-biz-hardware"
+  },
+  {
+    "id": "w-cafe",
+    "kind": "business",
+    "title": "Sample Cafe on Wyandotte",
+    "summary": "Fictional cafe with weekend hours.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.972,
+        42.3277
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "food",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-vacant",
+    "kind": "place",
+    "title": "Sample storefront for lease",
+    "summary": "Fictional vacant storefront. Shows how a vacancy could be verified and tracked.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.984,
+        42.3253
+      ]
+    },
+    "status": "Vacant",
+    "visibility": "public",
+    "updatedAt": "2026-10-08",
+    "tags": [
+      "vacancy",
+      "property",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-roadworks",
+    "kind": "issue",
+    "title": "Roadworks affecting shop access",
+    "summary": "Sample report: lane closure reduces customer parking. The BIA has acknowledged it and is asking the city for a schedule.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.9765,
+        42.327
+      ]
+    },
+    "status": "Acknowledged",
+    "visibility": "public",
+    "updatedAt": "2026-10-13",
+    "tags": [
+      "roadworks",
+      "city works",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-sidewalk",
+    "kind": "issue",
+    "title": "Sidewalk repair requested",
+    "summary": "Sample report: cracked sidewalk near a bus stop. Not yet assigned.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.993,
+        42.3235
+      ]
+    },
+    "status": "Reported",
+    "visibility": "public",
+    "updatedAt": "2026-10-10",
+    "tags": [
+      "sidewalk",
+      "maintenance",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-garden",
+    "kind": "project",
+    "title": "Streetscape garden maintenance",
+    "summary": "Sample project: seasonal planting and watering along the corridor.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.987,
+        42.3246
+      ]
+    },
+    "status": "In progress",
+    "visibility": "public",
+    "updatedAt": "2026-10-11",
+    "tags": [
+      "maintenance",
+      "streetscape",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-bia",
+    "kind": "organization",
+    "title": "Sample Olde Riverside BIA office",
+    "summary": "Fictional BIA coordinator desk. Shows an organization with a service area.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.9825,
+        42.3257
+      ]
+    },
+    "status": "Verified (sample)",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "bia",
+      "corridor"
+    ],
+    "synthetic": true,
+    "workspaceId": "ws-bia-sample"
+  },
+  {
+    "id": "w-market",
+    "kind": "event",
+    "title": "Sample harvest market day",
+    "summary": "Fictional Saturday market for the corridor.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.9945,
+        42.3231
+      ]
+    },
+    "status": "Planned",
+    "visibility": "public",
+    "updatedAt": "2026-10-09",
+    "tags": [
+      "market",
+      "food",
+      "corridor"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-hours-poll",
+    "kind": "poll",
+    "title": "Which hours suit a Saturday market?",
+    "summary": "Sample poll for corridor businesses and residents. Only verified residents can vote.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -82.97,
+        42.3283
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "poll",
+      "market",
+      "corridor"
+    ],
+    "synthetic": true,
+    "restrictedTo": "residents",
+    "poll": {
+      "options": [
+        {
+          "id": "w-hours-poll-opt0",
+          "label": "Morning (8-11)",
+          "votes": 42
+        },
+        {
+          "id": "w-hours-poll-opt1",
+          "label": "Midday (11-2)",
+          "votes": 67
+        },
+        {
+          "id": "w-hours-poll-opt2",
+          "label": "Afternoon (2-5)",
+          "votes": 23
+        }
+      ],
+      "closed": false
+    }
+  },
+  {
+    "id": "w-trail",
+    "kind": "place",
+    "title": "Sample riverfront trail lookout",
+    "summary": "Fictional viewpoint on the riverfront trail.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.042,
+        42.3125
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "trail",
+      "river",
+      "walk"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-books",
+    "kind": "business",
+    "title": "Sample downtown books",
+    "summary": "Fictional bookshop near Ouellette Avenue.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.0367,
+        42.3142
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "retail",
+      "downtown"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-streetlight",
+    "kind": "issue",
+    "title": "Streetlight out on sample block",
+    "summary": "Sample report that was resolved, to show a visible outcome on the map.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.033,
+        42.3155
+      ]
+    },
+    "status": "Resolved",
+    "visibility": "public",
+    "updatedAt": "2026-10-09",
+    "tags": [
+      "streetlight",
+      "downtown"
+    ],
+    "synthetic": true,
+    "outcome": {
+      "summary": "Light replaced by a sample works crew. The person who reported it was notified.",
+      "date": "2026-10-09"
+    }
+  },
+  {
+    "id": "w-walk",
+    "kind": "event",
+    "title": "Sample neighbourhood walk",
+    "summary": "Fictional weekend walk by the river. Everyone is welcome.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.0398,
+        42.312
+      ]
+    },
+    "status": "Planned",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "walk",
+      "social",
+      "river"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-ward",
+    "kind": "organization",
+    "title": "Sample ward office (demo)",
+    "summary": "Fictional ward office. Shows how a public office appears on the shared map.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.03,
+        42.318
+      ]
+    },
+    "status": "Verified (sample)",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "ward",
+      "public office",
+      "downtown"
+    ],
+    "synthetic": true,
+    "workspaceId": "ws-ward-sample"
+  },
+  {
+    "id": "w-post",
+    "kind": "post",
+    "title": "What would make our neighbourhood walk welcoming?",
+    "summary": "Sample public post that opens a conversation near the riverfront.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.0388,
+        42.3133
+      ]
+    },
+    "status": "Public",
+    "visibility": "public",
+    "updatedAt": "2026-10-14",
+    "tags": [
+      "walk",
+      "social",
+      "river"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-transit-poll",
+    "kind": "poll",
+    "title": "Where should a new transit shelter go?",
+    "summary": "Sample poll about a transit shelter downtown. Only verified residents can vote.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.045,
+        42.317
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "poll",
+      "transit",
+      "downtown"
+    ],
+    "synthetic": true,
+    "restrictedTo": "residents",
+    "poll": {
+      "options": [
+        {
+          "id": "w-transit-poll-opt0",
+          "label": "Riverside & Lauzon",
+          "votes": 31
+        },
+        {
+          "id": "w-transit-poll-opt1",
+          "label": "Wyandotte & Ouellette",
+          "votes": 55
+        },
+        {
+          "id": "w-transit-poll-opt2",
+          "label": "Tecumseh & Banwell",
+          "votes": 12
+        }
+      ],
+      "closed": false
+    }
+  },
+  {
+    "id": "w-resurface",
+    "kind": "project",
+    "title": "Sample road resurfacing",
+    "summary": "Sample city project, planned for next spring.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.028,
+        42.312
+      ]
+    },
+    "status": "Planned",
+    "visibility": "public",
+    "updatedAt": "2026-10-06",
+    "tags": [
+      "roads",
+      "city works",
+      "downtown"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-pizza",
+    "kind": "business",
+    "title": "Sample pizzeria",
+    "summary": "Fictional pizzeria near the river.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.042,
+        42.315
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "food",
+      "downtown"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-gallery",
+    "kind": "place",
+    "title": "Sample gallery space",
+    "summary": "Fictional community gallery.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.0345,
+        42.3128
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "art",
+      "downtown"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "t-cafe",
+    "kind": "business",
+    "title": "Sample Toronto cafe",
+    "summary": "Fictional cafe used to show a second city.",
+    "cityId": "toronto",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -79.385,
+        43.652
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "food"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "t-pothole",
+    "kind": "issue",
+    "title": "Sample pothole report",
+    "summary": "Sample report in Toronto.",
+    "cityId": "toronto",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -79.379,
+        43.656
+      ]
+    },
+    "status": "Reported",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "roads"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "t-poll",
+    "kind": "poll",
+    "title": "Sample ward poll",
+    "summary": "Sample poll. Windsor residents see it as a visitor and cannot vote.",
+    "cityId": "toronto",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -79.388,
+        43.649
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "poll"
+    ],
+    "synthetic": true,
+    "restrictedTo": "residents",
+    "poll": {
+      "options": [
+        {
+          "id": "t-poll-opt0",
+          "label": "Option A",
+          "votes": 10
+        },
+        {
+          "id": "t-poll-opt1",
+          "label": "Option B",
+          "votes": 18
+        }
+      ],
+      "closed": false
+    }
+  },
+  {
+    "id": "t-market",
+    "kind": "event",
+    "title": "Sample waterfront market",
+    "summary": "Fictional market.",
+    "cityId": "toronto",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -79.37,
+        43.65
+      ]
+    },
+    "status": "Planned",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "market"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "d-park",
+    "kind": "place",
+    "title": "Sample riverfront park",
+    "summary": "Fictional park in Detroit.",
+    "cityId": "detroit",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.045,
+        42.329
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "park"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "d-shop",
+    "kind": "business",
+    "title": "Sample Detroit record shop",
+    "summary": "Fictional shop.",
+    "cityId": "detroit",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.05,
+        42.335
+      ]
+    },
+    "status": "Open",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "retail"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "d-show",
+    "kind": "event",
+    "title": "Sample Detroit street show",
+    "summary": "Fictional event.",
+    "cityId": "detroit",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.04,
+        42.333
+      ]
+    },
+    "status": "Planned",
+    "visibility": "public",
+    "updatedAt": "2026-10-12",
+    "tags": [
+      "music"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-alert-flood",
+    "kind": "alert",
+    "title": "High water advisory: riverfront trail",
+    "summary": "Sections of the riverfront trail are closed after heavy rain. Barriers are posted at the trailheads.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.035,
+        42.322
+      ]
+    },
+    "status": "Active",
+    "visibility": "public",
+    "updatedAt": "2026-10-17",
+    "tags": [
+      "alert",
+      "trail",
+      "safety"
+    ],
+    "synthetic": true
+  },
+  {
+    "id": "w-alert-market",
+    "kind": "alert",
+    "title": "Saturday market moved indoors",
+    "summary": "This week the farmers market moves to the community hall on Wyandotte because of the forecast.",
+    "cityId": "windsor",
+    "geo": {
+      "type": "point",
+      "coordinates": [
+        -83.02,
+        42.315
+      ]
+    },
+    "status": "Active",
+    "visibility": "public",
+    "updatedAt": "2026-10-16",
+    "tags": [
+      "alert",
+      "market"
+    ],
+    "synthetic": true
+  }
+]

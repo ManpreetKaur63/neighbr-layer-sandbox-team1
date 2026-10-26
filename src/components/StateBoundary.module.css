@@ -1,0 +1,30 @@
+.box {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  padding: 1rem 1.1rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--paper-2);
+}
+.box h3 { margin: 0; font-size: 1.05rem; }
+.box p { margin: 0; color: var(--ink-soft); }
+.box[data-state='error'] { border-color: var(--alert); background: #fdf1ea; }
+.button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  border: 2px solid var(--forest);
+  background: var(--forest);
+  color: #fff;
+  cursor: pointer;
+}
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid var(--line-strong); border-top-color: var(--forest);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--line-strong); } }
