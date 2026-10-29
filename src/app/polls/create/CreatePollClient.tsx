@@ -1,15 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import type { CivicObject } from '@/lib/schemas';
 
 /** Poll authoring (M04). Creates a resident-restricted poll via the SocialPort. */
 export function CreatePollClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [created, setCreated] = useState<CivicObject | null>(null);

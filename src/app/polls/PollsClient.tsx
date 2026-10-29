@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import type { CivicObject } from '@/lib/schemas';
 
 /**
@@ -12,7 +12,7 @@ import type { CivicObject } from '@/lib/schemas';
  * SocialPort; closed polls and unknown options are rejected (error-path proof).
  */
 export function PollsClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [polls, setPolls] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [voted, setVoted] = useState<Set<string>>(new Set());
