@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { StateBoundary } from './StateBoundary';
-import { WorkspaceShell, type WorkspaceTab } from './WorkspaceShell';
-import { createMockServices } from '@/services/mock';
+import { WorkspaceShell, WORKSPACE_TABS, type WorkspaceTab } from './WorkspaceShell';
+import { resetSessionServices } from '@/services/session';
+import { useServices } from '@/services/use-services';
 import { mapHref, workspaceHrefForObject } from '@/lib/workspace';
 import type {
   CivicObject,
@@ -32,7 +33,9 @@ const NEXT_TASK_LABEL: Record<Exclude<TaskStatus, 'done'>, string> = {
 export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
   const searchParams = useSearchParams();
   const requestedId = searchParams.get('ws');
-  const services = useMemo(() => createMockServices(), []);
+  const requestedTab = searchParams.get('tab');
+  const initialTab: WorkspaceTab = WORKSPACE_TABS.some((t) => t.id === requestedTab) ? (requestedTab as WorkspaceTab) : 'overview';
+  const services = useServices();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [siblings, setSiblings] = useState<Workspace[]>([]);
@@ -41,9 +44,11 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
   const [offers, setOffers] = useState<WorkspaceOffer[]>([]);
   const [objects, setObjects] = useState<CivicObject[]>([]);
   const [cityName, setCityName] = useState('');
+  const [boundaryName, setBoundaryName] = useState('');
+  const [outsideBusinesses, setOutsideBusinesses] = useState(0);
   const [failed, setFailed] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<WorkspaceTab>('overview');
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offerTitle, setOfferTitle] = useState('');
@@ -58,12 +63,17 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
         setNotFound(true);
         return;
       }
-      const [m, t, o, cities, objs] = await Promise.all([
+      // A BIA only ever sees what is inside its own boundary. Businesses elsewhere in the city are
+      // counted (so the screen can say what is left out) but never listed.
+      const boundaryId = chosen.kind === 'bia' ? chosen.boundaryId : undefined;
+      const [m, t, o, cities, objs, cityBusinesses, boundary] = await Promise.all([
         services.workspaces.members(chosen.id),
         services.workspaces.tasks(chosen.id),
         services.workspaces.offers(chosen.id),
         services.cities.list(),
-        services.objects.list({ cityId: chosen.cityId }),
+        services.objects.list({ cityId: chosen.cityId, boundaryId }),
+        boundaryId ? services.objects.list({ cityId: chosen.cityId, kinds: ['business'] }) : Promise.resolve([]),
+        boundaryId ? services.boundaries.get(boundaryId) : Promise.resolve(null),
       ]);
       setWorkspace(chosen);
       setSiblings(ofKind);
@@ -72,6 +82,10 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
       setOffers(o);
       setCityName(cities.find((c) => c.id === chosen.cityId)?.name ?? chosen.cityId);
       setObjects(objs);
+      setBoundaryName(boundary?.properties.name ?? '');
+      setOutsideBusinesses(
+        boundaryId ? cityBusinesses.filter((b) => !objs.some((x) => x.id === b.id)).length : 0,
+      );
     } catch {
       setFailed(true);
     }
@@ -93,6 +107,8 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
     ? objects.filter((o) => o.kind === 'business' && !o.workspaceId)
     : [];
   const events = objects.filter((o) => o.kind === 'event');
+  const signals = objects.filter((o) => o.kind === 'issue');
+  const openSignals = signals.filter((o) => !o.handledBy && o.status !== 'Resolved');
   const openTasks = tasks.filter((t) => t.status !== 'done');
   const publishedOffers = offers.filter((o) => o.status === 'published');
 
@@ -137,15 +153,23 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
               <div className="pill-row">
                 <span className="pill">{members.length} members</span>
                 <span className="pill">{kind === 'bia' ? listings.length : claimed.length} listings</span>
+                {kind === 'bia' && <span className="pill">{openSignals.length} new community signals</span>}
                 <span className="pill">{openTasks.length} open tasks</span>
                 <span className="pill">{publishedOffers.length} published offers</span>
               </div>
               <p className="muted">
                 {kind === 'bia'
-                  ? `Corridor directory for ${cityName}: ${listings.length} listings and places, ${events.length} events, and a work queue of ${tasks.length} tasks.`
+                  ? `Directory for ${boundaryName || cityName}: ${listings.length} businesses and places inside the boundary, ${events.length} events and a work queue of ${tasks.length} tasks. ${outsideBusinesses} ${outsideBusinesses === 1 ? 'business' : 'businesses'} elsewhere in ${cityName} ${outsideBusinesses === 1 ? 'is' : 'are'} outside this boundary and not listed.`
                   : `Your claimed listings in ${cityName}: ${claimed.length}. Unclaimed businesses in the same city can be claimed from the Listings tab.`}
               </p>
-              {kind === 'bia' && <SignalLoop tasks={tasks} onAdvance={(id, status) => act(() => services.workspaces.updateTask(workspace.id, id, status), 'Task updated.')} />}
+              {kind === 'bia' && (
+                <SignalLoop
+                  tasks={tasks}
+                  signals={signals}
+                  onAdvance={(id, status) => act(() => services.workspaces.updateTask(workspace.id, id, status), 'Task updated. The community issue and the reporter\u2019s notifications were updated too.')}
+                  onOpenSignals={() => setTab('signals')}
+                />
+              )}
               <div className="btn-row">
                 <Link className="btn secondary" href="/map">Open the map</Link>
                 <Link className="btn secondary" href="/businesses">Business directory</Link>
@@ -175,6 +199,13 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
           {tab === 'listings' && (
             <section aria-label="Listings">
               <h2>{kind === 'bia' ? 'Corridor listings' : 'Your listings'}</h2>
+              {kind === 'bia' && (
+                <p className="muted">
+                  Only businesses and places inside {boundaryName || 'this BIA\u2019s boundary'} are listed:{' '}
+                  {listings.length} shown, {outsideBusinesses} {outsideBusinesses === 1 ? 'business' : 'businesses'} elsewhere in{' '}
+                  {cityName} left out.
+                </p>
+              )}
               {(kind === 'bia' ? listings : claimed).map((o) => (
                 <ListingCard key={o.id} object={o} />
               ))}
@@ -275,7 +306,7 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
 
           {tab === 'events' && (
             <section aria-label="Events">
-              <h2>Events in {cityName}</h2>
+              <h2>Events in {kind === 'bia' ? boundaryName || cityName : cityName}</h2>
               <p className="muted">Events the workspace can promote or staff. Each one links to its map pin.</p>
               {events.map((o) => (
                 <article className="card" key={o.id}>
@@ -288,6 +319,51 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
             </section>
           )}
 
+          {tab === 'signals' && kind === 'bia' && (
+            <section aria-label="Community signals">
+              <h2>Community signals</h2>
+              <p className="muted">
+                Issues reported by neighbours inside {boundaryName || 'this BIA\u2019s boundary'}. Taking one on creates a task in
+                the work queue, tells the reporter, and carries every later step back to the issue on the map. Issues
+                outside the boundary never appear here.
+              </p>
+              {signals.map((o) => {
+                const task = tasks.find((t) => t.id === o.handledBy?.taskId);
+                return (
+                  <article className="card" key={o.id} aria-label={`Signal: ${o.title}`}>
+                    <h3 style={{ margin: '0 0 4px' }}>{o.title}</h3>
+                    <p className="muted" style={{ margin: '0 0 8px' }}>{o.summary} · {o.status}</p>
+                    {task && <p className="muted" style={{ margin: '0 0 8px' }}>BIA task: “{task.title}” — {task.status}</p>}
+                    <div className="btn-row">
+                      {!o.handledBy && o.status !== 'Resolved' && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => act(() => services.workspaces.raiseTaskFromIssue(workspace.id, o.id), 'Issue taken on as a task. The reporter was notified.')}
+                        >
+                          Take on as a task
+                        </button>
+                      )}
+                      {task && task.status !== 'done' && (
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          onClick={() =>
+                            act(() => services.workspaces.updateTask(workspace.id, task.id, task.status === 'open' ? 'in-progress' : 'done'), 'Task updated. The issue on the map was updated too.')
+                          }
+                        >
+                          {NEXT_TASK_LABEL[task.status]}
+                        </button>
+                      )}
+                      <Link className="btn secondary" href={mapHref(o.id)}>📍 View on map</Link>
+                    </div>
+                  </article>
+                );
+              })}
+              {signals.length === 0 && <p className="muted">No community issues inside this boundary right now.</p>}
+            </section>
+          )}
+
           {tab === 'tasks' && (
             <section aria-label="Tasks">
               <h2>Work queue</h2>
@@ -295,7 +371,15 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
               {tasks.map((t) => (
                 <article className="card" key={t.id}>
                   <h3 style={{ margin: '0 0 4px' }}>{t.title}</h3>
-                  <p className="muted" style={{ margin: '0 0 8px' }}>{t.kind} · {t.status}</p>
+                  <p className="muted" style={{ margin: '0 0 8px' }}>
+                    {t.kind} · {t.status}
+                    {t.sourceObjectId && (
+                      <>
+                        {' · '}
+                        <Link href={mapHref(t.sourceObjectId)}>raised from a community issue</Link>
+                      </>
+                    )}
+                  </p>
                   {t.status !== 'done' && (
                     <button
                       type="button"
@@ -336,38 +420,78 @@ function ListingCard({ object }: { object: CivicObject }) {
 }
 
 /**
- * Bounded BIA–Business–community signal loop (M05 WP4), traced, not invented:
- * community issue -> BIA work-queue task -> published demo outcome. The outcome
- * card appears only once the task is actually marked done in this session.
+ * The signal loop (M05 WP4), now driven by real state: community issue -> BIA task -> outcome.
+ * Each row reads the live issue and task, so whatever happened on another screen (a new
+ * report, a task moved forward) shows here, and what happens here shows on the map, in the
+ * reporter's notifications and in the Pulse feed.
  */
-function SignalLoop({ tasks, onAdvance }: { tasks: WorkspaceTask[]; onAdvance: (id: string, status: TaskStatus) => void }) {
-  const task = tasks.find((t) => t.id === 't-bia-works');
-  if (!task) return null;
+function SignalLoop({
+  tasks,
+  signals,
+  onAdvance,
+  onOpenSignals,
+}: {
+  tasks: WorkspaceTask[];
+  signals: CivicObject[];
+  onAdvance: (id: string, status: TaskStatus) => void;
+  onOpenSignals: () => void;
+}) {
+  const linked = tasks
+    .map((task) => ({ task, issue: signals.find((s) => s.id === task.sourceObjectId) }))
+    .filter((x): x is { task: WorkspaceTask; issue: CivicObject } => x.issue !== undefined);
+  const waiting = signals.filter((s) => !s.handledBy && s.status !== 'Resolved');
   return (
     <section aria-label="Signal loop" className="card">
       <h3 style={{ marginTop: 0 }}>Signal loop: community → BIA → outcome</h3>
-      <ol>
-        <li>
-          Community signal: <Link href={mapHref('w-roadworks')}>Roadworks affecting shop access</Link> (issue on the map).
-        </li>
-        <li>Workspace action: “{task.title}” — currently {task.status}.</li>
-        <li>
-          {task.status === 'done' ? (
-            <>Demo outcome published: shops notified — see the market alert on the <Link href={mapHref('w-alert-market')}>map</Link>.</>
-          ) : (
-            'Outcome slot: nothing published yet. Mark the task done in the Tasks tab and this outcome appears.'
+      {waiting.length > 0 && (
+        <p>
+          <strong>{waiting.length}</strong> new community {waiting.length === 1 ? 'signal is' : 'signals are'} waiting:{' '}
+          {waiting.map((w) => w.title).join('; ')}.{' '}
+          <button type="button" className="pill" onClick={onOpenSignals}>Review community signals</button>
+        </p>
+      )}
+      {linked.length === 0 && <p className="muted">No community issue has been taken on yet.</p>}
+      {linked.map(({ task, issue }) => (
+        <div key={task.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+          <ol>
+            <li>
+              Community signal: <Link href={mapHref(issue.id)}>{issue.title}</Link> — now “{issue.status}”.
+            </li>
+            <li>BIA action: “{task.title}” — {task.status}.</li>
+            <li>
+              {issue.outcome ? (
+                <>
+                  Outcome published: {issue.outcome.summary} <Link href={mapHref(issue.id)}>See it on the map</Link>.
+                </>
+              ) : (
+                'Outcome: nothing published yet. Move the task to done and the outcome appears on the issue.'
+              )}
+            </li>
+          </ol>
+          {task.status !== 'done' && (
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => onAdvance(task.id, task.status === 'open' ? 'in-progress' : 'done')}
+            >
+              {NEXT_TASK_LABEL[task.status]}
+            </button>
           )}
-        </li>
-      </ol>
-      {task.status !== 'done' && (
+        </div>
+      ))}
+      <p className="muted" style={{ marginBottom: 0 }}>
+        Demo session data lasts for this browser tab.{' '}
         <button
           type="button"
-          className="btn secondary"
-          onClick={() => onAdvance(task.id, task.status === 'open' ? 'in-progress' : 'done')}
+          className="pill"
+          onClick={() => {
+            resetSessionServices();
+            window.location.reload();
+          }}
         >
-          {NEXT_TASK_LABEL[task.status]}
+          Reset demo data
         </button>
-      )}
+      </p>
     </section>
   );
 }

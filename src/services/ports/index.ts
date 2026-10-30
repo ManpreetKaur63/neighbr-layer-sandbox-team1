@@ -1,5 +1,6 @@
 import type {
   BoundaryCollection,
+  BoundaryFeature,
   City,
   CivicObject,
   NotificationItem,
@@ -24,6 +25,8 @@ export interface CivicObjectPort {
 
 export interface BoundaryPort {
   listForCity(cityId: string): Promise<BoundaryCollection>;
+  /** One boundary feature by id, or null. */
+  get(id: string): Promise<BoundaryFeature | null>;
 }
 
 export interface CityPort {
@@ -62,7 +65,13 @@ export interface SocialPort {
   /** Vote in a poll; rejects on unknown poll/option or closed polls. */
   vote(pollId: string, optionId: string): Promise<CivicObject>;
   /** Report an issue; rejects on empty title. */
-  reportIssue(input: { title: string; summary: string; cityId: string }): Promise<CivicObject>;
+  reportIssue(input: {
+    title: string;
+    summary: string;
+    cityId: string;
+    /** [lng, lat]. Defaults to a downtown point when omitted. */
+    coordinates?: [number, number];
+  }): Promise<CivicObject>;
   /** Create a poll; rejects on empty question or fewer than 2 options. */
   createPoll(input: { question: string; options: string[]; cityId: string }): Promise<CivicObject>;
 }
@@ -94,6 +103,16 @@ export interface WorkspacePort {
    * by another workspace.
    */
   claimListing(workspaceId: string, objectId: string): Promise<CivicObject>;
+  /**
+   * BIA action: take a community issue on as a work-queue task. The issue must
+   * sit inside the BIA's own boundary and not already be handled; the issue
+   * becomes "Acknowledged" and shows who is handling it. Moving the task
+   * forward later updates the issue (In progress, then Resolved with an
+   * outcome) and notifies the community. Rejects on unknown ids, a
+   * non-issue, an issue outside the boundary, an already-handled issue, or a
+   * workspace that is not a verified BIA.
+   */
+  raiseTaskFromIssue(workspaceId: string, issueId: string): Promise<WorkspaceTask>;
 }
 
 export interface Services {

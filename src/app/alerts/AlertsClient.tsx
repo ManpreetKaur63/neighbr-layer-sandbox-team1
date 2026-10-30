@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import type { CivicObject } from '@/lib/schemas';
 
 /** Alerts (M04): approved public alerts tied to places, with map deep links. */
 export function AlertsClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [alerts, setAlerts] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
 

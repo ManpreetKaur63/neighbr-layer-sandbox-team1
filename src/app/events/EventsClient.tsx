@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import { mapHref } from '@/lib/workspace';
 import type { CivicObject } from '@/lib/schemas';
 
@@ -14,7 +14,7 @@ import type { CivicObject } from '@/lib/schemas';
  * show the same events inside a tenant workspace; this page is the public view.
  */
 export function EventsClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [items, setItems] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [cityName, setCityName] = useState('');
