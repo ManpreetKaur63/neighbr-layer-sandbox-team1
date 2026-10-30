@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { KIND_META } from '@/lib/kinds';
-import { workspaceHrefForObject } from '@/lib/workspace';
+import { workspaceHref, workspaceHrefForObject } from '@/lib/workspace';
 import type { BoundaryFeature, City, CivicObject } from '@/lib/schemas';
 import type { VisitContext } from '@/lib/visit';
 import styles from './map.module.css';
@@ -27,15 +27,23 @@ const AUTHORITY_LABEL = {
   illustrative: 'Illustrative outline, not an official boundary',
 } as const;
 
+/** What lies inside a boundary, and which BIA workspace (if any) owns it. */
+export interface BoundaryInfo {
+  businesses: CivicObject[];
+  biaWorkspaceId: string | null;
+}
+
 export function DetailPanel({
   selection,
   visit,
   city,
+  boundaryInfo,
   onBack,
 }: {
   selection: Selection;
   visit: VisitContext | null;
   city: City | undefined;
+  boundaryInfo?: BoundaryInfo | null;
   onBack: () => void;
 }) {
   return (
@@ -47,7 +55,7 @@ export function DetailPanel({
       {selection.type === 'object' ? (
         <ObjectDetail object={selection.object} visit={visit} city={city} />
       ) : (
-        <BoundaryDetail feature={selection.feature} />
+        <BoundaryDetail feature={selection.feature} info={boundaryInfo ?? null} />
       )}
     </article>
   );
@@ -84,6 +92,16 @@ function ObjectDetail({ object: o, visit, city }: { object: CivicObject; visit: 
             {blocked
               ? `Only verified residents of ${city?.name ?? 'this city'} can take this poll. You're viewing as a ${visit?.label.toLowerCase()}.`
               : 'You can take this poll as a verified resident. Voting arrives in the next milestone.'}
+          </p>
+        </section>
+      )}
+
+      {o.handledBy && (
+        <section className={styles.allowed} aria-label="Follow-up">
+          <h3>Being handled by a BIA</h3>
+          <p>
+            Status: <strong>{o.status}</strong>.{' '}
+            <Link href={`${workspaceHref('bia', o.handledBy.workspaceId)}&tab=signals`}>See the BIA&apos;s follow-up</Link>
           </p>
         </section>
       )}
@@ -126,7 +144,7 @@ function ObjectDetail({ object: o, visit, city }: { object: CivicObject; visit: 
   );
 }
 
-function BoundaryDetail({ feature }: { feature: BoundaryFeature }) {
+function BoundaryDetail({ feature, info }: { feature: BoundaryFeature; info: BoundaryInfo | null }) {
   const p = feature.properties;
   return (
     <>
@@ -136,6 +154,19 @@ function BoundaryDetail({ feature }: { feature: BoundaryFeature }) {
         <span className={styles.badge}>{AUTHORITY_LABEL[p.authority]}</span>
       </p>
       <p>{p.description}</p>
+      {info && (
+        <section className={styles.allowed} aria-label="Businesses inside this area">
+          <h3>
+            {info.businesses.length} {info.businesses.length === 1 ? 'business' : 'businesses'} inside this outline
+          </h3>
+          {info.businesses.length > 0 && <p>{info.businesses.map((b) => b.title).join(', ')}</p>}
+          {info.biaWorkspaceId && (
+            <p>
+              <Link href={`${workspaceHref('bia', info.biaWorkspaceId)}&tab=listings`}>Open this BIA&apos;s directory</Link>
+            </p>
+          )}
+        </section>
+      )}
       <section className={styles.restricted} aria-label="Trust note">
         <h3>Don&apos;t rely on this outline</h3>
         <p>

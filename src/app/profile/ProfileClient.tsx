@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import type { UserContext } from '@/lib/schemas';
 
 /**
@@ -14,7 +14,7 @@ import type { UserContext } from '@/lib/schemas';
  * visitor context — it does not convert this profile, and this page says so.
  */
 export function ProfileClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [ctx, setCtx] = useState<UserContext | null>(null);
   const [failed, setFailed] = useState(false);
   const [showPublicly, setShowPublicly] = useState(true);

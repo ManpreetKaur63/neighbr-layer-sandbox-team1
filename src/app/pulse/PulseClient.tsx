@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
 import { SocialCard } from '@/components/SocialCard';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import type { CivicObject } from '@/lib/schemas';
 
 /**
@@ -13,7 +13,7 @@ import type { CivicObject } from '@/lib/schemas';
  * back to its pin on the shared map (`/map?sel=<id>`).
  */
 export function PulseClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
   const [items, setItems] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [cityName, setCityName] = useState('');

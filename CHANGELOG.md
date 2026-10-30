@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — mobile map space, BIA boundaries, connected demo journey
+- **Mobile layout (≤760px):** one compact top row (brand, search, place). The Social/Civic/Combined switch and the resident/visitor pill move into the bottom sheet (rendered once). The sheet has three states, peek (default), half and full, so the map keeps most of the screen. Main navigation and Beacon stay fixed at the bottom with safe-area insets, `dvh` heights, and map controls/attribution lifted above the sheet.
+- **BIA boundaries:** `Workspace.boundaryId`, `ObjectQuery.boundaryId`, `BoundaryPort.get`, and `src/lib/geo.ts`. The BIA directory, events and signals list only records inside the boundary (3 of 5 Windsor businesses) and say how many were left out. The public `/businesses` page gets an "Only inside <corridor>" filter. A corridor outline on the map lists the businesses inside it.
+- **Connected steps:** all screens now share one demo session (`useServices()`, backed by `sessionStorage`) instead of each creating private copies of the data, which is why changes used to vanish on navigation. `/issues/report` lets you choose a location; `/bia` has a Community signals tab; `WorkspacePort.raiseTaskFromIssue` creates a task from an in-boundary issue; task progress flows back to the issue (Acknowledged → In progress → Resolved with an outcome) and to the reporter's notifications; the map detail panel shows follow-up and outcome. Walkthrough: `docs/DEMO_WALKTHROUGH.md`.
+- Tests: 91 unit/component tests pass (14 new). Two Playwright tests added, not run in the authoring environment.
+
 ## Unreleased — M01–M05 merged codebase
 
 This merge keeps, in one codebase: M01 delivery foundation (repo structure, CI, route inventory, evidence index templates), M02 entry and profiles (built here as a backfill — see below), M03 map environment, M04 social layer, and M05 BIA and Business workspaces. Nothing from the uploaded M04 zip was lost: that zip is byte-identical to the M04 delivery the M05 work was already built on, so the merge is M04 + M05 + the new M02 shells, not a replacement of either.

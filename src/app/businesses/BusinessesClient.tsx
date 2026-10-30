@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
-import { createMockServices } from '@/services/mock';
+import { useServices } from '@/services/use-services';
 import { mapHref, workspaceHrefForObject } from '@/lib/workspace';
 import type { CivicObject } from '@/lib/schemas';
 
@@ -15,7 +16,12 @@ import type { CivicObject } from '@/lib/schemas';
  * This page never claims anything itself — claiming is a workspace action.
  */
 export function BusinessesClient() {
-  const services = useMemo(() => createMockServices(), []);
+  const services = useServices();
+  const searchParams = useSearchParams();
+  // ?area=<boundary id> narrows the directory to one BIA corridor; absent means the whole city.
+  const [area, setArea] = useState<string>(searchParams.get('area') ?? 'all');
+  const [corridors, setCorridors] = useState<{ boundaryId: string; name: string }[]>([]);
+  const [insideIds, setInsideIds] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [cityName, setCityName] = useState('');
@@ -27,8 +33,25 @@ export function BusinessesClient() {
         const [ctx, cities] = await Promise.all([services.session.getContext(), services.cities.list()]);
         const cityId = ctx.homeCityId ?? cities[0]?.id ?? 'windsor';
         if (live) setCityName(cities.find((c) => c.id === cityId)?.name ?? cityId);
-        const list = await services.objects.list({ cityId, kinds: ['business'] });
-        if (live) setItems(list);
+        const bias = (await services.workspaces.workspaces()).filter(
+          (w) => w.kind === 'bia' && w.boundaryId && w.cityId === cityId,
+        );
+        const found = await Promise.all(
+          bias.map(async (w) => ({
+            boundaryId: w.boundaryId as string,
+            name: (await services.boundaries.get(w.boundaryId as string))?.properties.name ?? w.name,
+          })),
+        );
+        const selected = found.find((c) => c.boundaryId === area);
+        const [list, inside] = await Promise.all([
+          services.objects.list({ cityId, kinds: ['business'], boundaryId: selected?.boundaryId }),
+          services.objects.list({ cityId, kinds: ['business'], boundaryId: found[0]?.boundaryId }),
+        ]);
+        if (live) {
+          setCorridors(found);
+          setInsideIds(new Set(found.length ? inside.map((o) => o.id) : []));
+          setItems(list);
+        }
       } catch {
         if (live) setFailed(true);
       }
@@ -36,7 +59,7 @@ export function BusinessesClient() {
     return () => {
       live = false;
     };
-  }, [services]);
+  }, [services, area]);
 
   const state = failed ? 'error' : items === null ? 'loading' : items.length === 0 ? 'empty' : 'success';
 
@@ -50,6 +73,29 @@ export function BusinessesClient() {
           Business directory{cityName ? ` for ${cityName}` : ''}. Claimed listings are managed in a workspace;
           unclaimed ones are not yet managed by anyone here. Everything here is invented demo data.
         </p>
+        {corridors.length > 0 && (
+          <div className="pill-row" role="group" aria-label="Directory area">
+            <button
+              type="button"
+              className={`pill ${area === 'all' ? 'active' : ''}`}
+              aria-pressed={area === 'all'}
+              onClick={() => { setItems(null); setArea('all'); }}
+            >
+              All of {cityName}
+            </button>
+            {corridors.map((c) => (
+              <button
+                key={c.boundaryId}
+                type="button"
+                className={`pill ${area === c.boundaryId ? 'active' : ''}`}
+                aria-pressed={area === c.boundaryId}
+                onClick={() => { setItems(null); setArea(c.boundaryId); }}
+              >
+                Only inside {c.name}
+              </button>
+            ))}
+          </div>
+        )}
         <StateBoundary
           state={state}
           loadingLabel="Loading businesses…"
@@ -70,6 +116,7 @@ export function BusinessesClient() {
                 <p className="muted" style={{ margin: '0 0 8px' }}>{o.summary} · {o.status}</p>
                 <p className="muted" style={{ margin: '0 0 8px' }}>
                   {workspaceLink ? 'Claimed — managed in a workspace' : 'Not claimed yet'}
+                  {insideIds.has(o.id) && corridors[0] ? ` · Inside ${corridors[0].name}` : ''}
                 </p>
                 <div className="btn-row">
                   <Link className="btn secondary" href={mapHref(o.id)}>📍 View on map</Link>

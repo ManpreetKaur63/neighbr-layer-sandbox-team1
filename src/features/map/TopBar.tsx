@@ -14,9 +14,43 @@ interface Props {
   onSearchText: (value: string) => void;
   onLens: (lens: Lens) => void;
   onOpenDestination: () => void;
+  /**
+   * Phone layout: the top bar keeps only brand, search and place, so the map gets the space.
+   * The lens switch and visit context then live in the bottom sheet (rendered once, never twice).
+   */
+  compact?: boolean;
 }
 
-export function TopBar({ city, visit, lens, searchText, onSearchText, onLens, onOpenDestination }: Props) {
+export function ContextPill({ visit }: { visit: VisitContext | null }) {
+  if (!visit) return null;
+  return (
+    <p className={styles.context} data-mode={visit.mode} aria-live="polite">
+      <span className={styles.contextDot} aria-hidden="true" />
+      {visit.label}
+    </p>
+  );
+}
+
+export function LensSwitch({ lens, onLens }: { lens: Lens; onLens: (lens: Lens) => void }) {
+  return (
+    <div className={styles.lens} role="radiogroup" aria-label="What to show on the map">
+      {(Object.keys(LENS_META) as Lens[]).map((value) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={lens === value}
+          title={LENS_META[value].hint}
+          onClick={() => onLens(value)}
+        >
+          {LENS_META[value].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function TopBar({ city, visit, lens, searchText, onSearchText, onLens, onOpenDestination, compact = false }: Props) {
   return (
     <header className={styles.top}>
       <Link href="/" className={styles.brand} aria-label="Neighbr home">
@@ -43,27 +77,8 @@ export function TopBar({ city, visit, lens, searchText, onSearchText, onLens, on
         <span className={styles.srOnly}>Change place</span>
       </button>
 
-      {visit && (
-        <p className={styles.context} data-mode={visit.mode} aria-live="polite">
-          <span className={styles.contextDot} aria-hidden="true" />
-          {visit.label}
-        </p>
-      )}
-
-      <div className={styles.lens} role="radiogroup" aria-label="What to show on the map">
-        {(Object.keys(LENS_META) as Lens[]).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={lens === value}
-            title={LENS_META[value].hint}
-            onClick={() => onLens(value)}
-          >
-            {LENS_META[value].label}
-          </button>
-        ))}
-      </div>
+      {!compact && <ContextPill visit={visit} />}
+      {!compact && <LensSwitch lens={lens} onLens={onLens} />}
     </header>
   );
 }
