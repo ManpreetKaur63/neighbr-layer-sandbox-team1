@@ -7,10 +7,13 @@ import type {
   TaskStatus,
   UserContext,
   Workspace,
+  MemberRole,
   WorkspaceMember,
   WorkspaceOffer,
+  WorkspaceProgram,
   WorkspaceTask,
 } from '@/lib/schemas';
+import type { ActorContext } from '@/lib/permissions';
 import type { ObjectQuery } from '@/lib/query';
 
 /**
@@ -81,19 +84,66 @@ export interface WorkspacePort {
   workspace(id: string): Promise<Workspace | null>;
   members(workspaceId: string): Promise<WorkspaceMember[]>;
   tasks(workspaceId: string): Promise<WorkspaceTask[]>;
+  /**
+   * M06: every mutating method takes an optional `actor`. When given, the port
+   * applies the shared permission rules (`decide` in src/lib/permissions.ts)
+   * and rejects with "Not allowed: ...". Without an actor the call behaves as
+   * in M05. A restricted workspace rejects every mutation either way.
+   */
   /** Advance a task one step forward; rejects on unknown task or a step back. */
-  updateTask(workspaceId: string, taskId: string, status: TaskStatus): Promise<WorkspaceTask>;
+  updateTask(workspaceId: string, taskId: string, status: TaskStatus, actor?: ActorContext): Promise<WorkspaceTask>;
+  /**
+   * Decline a request with a recorded reason. From open/in-progress only;
+   * declined is terminal. Requires the 'work' permission.
+   */
+  declineTask(workspaceId: string, taskId: string, reason: string, actor?: ActorContext): Promise<WorkspaceTask>;
+  /**
+   * Send a request back for more information, with a note saying what is
+   * needed. From open/in-progress only. Requires the 'work' permission.
+   */
+  requestTaskInfo(workspaceId: string, taskId: string, note: string, actor?: ActorContext): Promise<WorkspaceTask>;
+  /**
+   * Provide the requested information; the request returns to open.
+   * From needs-info only. Requires the 'work' permission.
+   */
+  provideTaskInfo(workspaceId: string, taskId: string, note: string, actor?: ActorContext): Promise<WorkspaceTask>;
   offers(workspaceId: string): Promise<WorkspaceOffer[]>;
   /** Create a draft offer; rejects on empty title or unknown workspace/business. */
-  createOffer(input: { workspaceId: string; businessId: string; title: string; summary: string }): Promise<WorkspaceOffer>;
+  createOffer(
+    input: { workspaceId: string; businessId: string; title: string; summary: string },
+    actor?: ActorContext,
+  ): Promise<WorkspaceOffer>;
   /** Publish a draft; rejects on unknown offer, a non-draft, or an unverified workspace. */
-  publishOffer(offerId: string): Promise<WorkspaceOffer>;
+  publishOffer(offerId: string, actor?: ActorContext): Promise<WorkspaceOffer>;
   /**
    * Claim an unclaimed business listing into a workspace. Rejects on unknown
    * workspace/object, a non-business object, or a listing already claimed
    * by another workspace.
    */
-  claimListing(workspaceId: string, objectId: string): Promise<CivicObject>;
+  claimListing(workspaceId: string, objectId: string, actor?: ActorContext): Promise<CivicObject>;
+
+  /** M06: programs, services and notices owned by a workspace. */
+  programs(workspaceId: string): Promise<WorkspaceProgram[]>;
+  /** Create a draft program; rejects on empty title, unknown workspace or unknown linked object. */
+  createProgram(
+    input: { workspaceId: string; title: string; summary: string; objectId?: string },
+    actor?: ActorContext,
+  ): Promise<WorkspaceProgram>;
+  /** Publish a draft program; same gates as offers: draft only, verified workspace, publish permission. */
+  publishProgram(programId: string, actor?: ActorContext): Promise<WorkspaceProgram>;
+
+  /**
+   * M06: member management. Inviting creates an `invited` member with no access
+   * until `acceptInvite`. Changing a role never leaves a workspace without an
+   * active owner.
+   */
+  inviteMember(
+    input: { workspaceId: string; name: string; role: MemberRole },
+    actor?: ActorContext,
+  ): Promise<WorkspaceMember>;
+  changeMemberRole(memberId: string, role: MemberRole, actor?: ActorContext): Promise<WorkspaceMember>;
+  /** The invited person accepts (no actor: it is the invitee's own action). */
+  acceptInvite(memberId: string): Promise<WorkspaceMember>;
 }
 
 export interface Services {

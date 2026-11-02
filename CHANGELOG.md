@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Week 6 request decisions (declined / more information)
+- Client's Week 6 guidance asked what happens when a request is declined or more information is needed: task statuses gained `declined` (terminal, reason required and recorded) and `needs-info` (returns to open when the information is provided); tasks carry an optional `note` as the record of what happened.
+- New `WorkspacePort` methods `declineTask`, `requestTaskInfo`, `provideTaskInfo`, all gated on the `work` permission with "Not allowed: ..." rejections; restricted workspaces reject them too.
+- Tasks tab in every workspace: Decline / Request info / Provide info buttons (role-gated), recorded notes shown per request. 8 new tests (`tests/unit/task-decisions.test.ts`); 114 total pass.
+
+## Unreleased — M06 Institution, community organization and school workspaces
+- Same reusable shell, three more tenant types: `kind` now includes `institution`, `organization` and `school`. Per-kind configuration in `src/lib/workspace-config.ts` (tabs, role names, wording, safeguards). `/institution` serves the institution and school tenants (`?ws=` picks one); `/organization` serves community organizations. Both routes were stubs; the required route count is unchanged (33).
+- Institution dashboard shell: Sample Riverside Public Library (verified) with dashboard tiles, an "awaiting publication" list, services and programs, members, events and tasks.
+- School / education workspace: Sample Riverside Elementary School (verified) and Sample Riverside Language Academy (restricted, read-only). Guardian-facing programs and notices only; no student records.
+- Community organization workspace: Sample Riverside Neighbours Association (verified) and Sample Friends of the Trail (onboarding). Initiatives, members and volunteers, events and tasks.
+- Role and permission-state demonstrations: new pure rule `decide` in `src/lib/permissions.ts` (role x invitation state x workspace access state); a "view as" switch on every workspace; a Roles & access tab with a role matrix, an access-state matrix and the reason for each decision; disabled controls say why.
+- `WorkspacePort` additions: `programs`, `createProgram`, `publishProgram`, `inviteMember`, `changeMemberRole` (never leaves a workspace without an active owner), `acceptInvite`. Every mutating method takes an optional actor and rejects with "Not allowed: ...". A restricted workspace now rejects every change, with or without an actor. Calls without an actor behave exactly as in M05.
+- Tests: 29 new (`permissions.test.ts` 12, `workspace-m06.test.ts` 17), all against the port and the pure rule.
+- Not changed: map fixtures (the new tenants have no pins yet), authentication (still none), messages/documents/analytics (still not built).
+
+
 ## Unreleased — M01–M05 merged codebase
 
 This merge keeps, in one codebase: M01 delivery foundation (repo structure, CI, route inventory, evidence index templates), M02 entry and profiles (built here as a backfill — see below), M03 map environment, M04 social layer, and M05 BIA and Business workspaces. Nothing from the uploaded M04 zip was lost: that zip is byte-identical to the M04 delivery the M05 work was already built on, so the merge is M04 + M05 + the new M02 shells, not a replacement of either.

@@ -118,10 +118,13 @@ export type NotificationItem = z.infer<typeof notificationSchema>;
  * the layout code. There is deliberately no default workspace: a page must
  * name one explicitly (route `?ws=` or the first workspace of its kind).
  */
-export const workspaceKindSchema = z.enum(['bia', 'business']);
+export const workspaceKindSchema = z.enum(['bia', 'business', 'institution', 'organization', 'school']);
 export type WorkspaceKind = z.infer<typeof workspaceKindSchema>;
 
-/** Access state: onboarding tenants can set up but are not yet verified. */
+/**
+ * Access state: onboarding tenants can set up but are not yet verified;
+ * restricted tenants are read-only (M06 built that behaviour in the port).
+ */
 export const workspaceStatusSchema = z.enum(['onboarding', 'verified', 'restricted']);
 export type WorkspaceStatus = z.infer<typeof workspaceStatusSchema>;
 
@@ -150,11 +153,17 @@ export const workspaceMemberSchema = z.object({
 });
 export type WorkspaceMember = z.infer<typeof workspaceMemberSchema>;
 
-/** Work-queue item. Status moves only forward: open -> in-progress -> done. */
+/**
+ * Work-queue item. The happy path moves only forward: open -> in-progress -> done.
+ * A request can also be declined (terminal, with a recorded reason) or sent back
+ * for more information (needs-info -> open when the information is provided).
+ * The optional note records what happened: the decline reason, the information
+ * requested, or the information provided.
+ */
 export const taskKindSchema = z.enum(['listing', 'offer', 'event', 'vacancy', 'city-works', 'general']);
 export type TaskKind = z.infer<typeof taskKindSchema>;
 
-export const taskStatusSchema = z.enum(['open', 'in-progress', 'done']);
+export const taskStatusSchema = z.enum(['open', 'in-progress', 'done', 'declined', 'needs-info']);
 export type TaskStatus = z.infer<typeof taskStatusSchema>;
 
 export const workspaceTaskSchema = z.object({
@@ -163,6 +172,7 @@ export const workspaceTaskSchema = z.object({
   title: z.string().min(1),
   kind: taskKindSchema,
   status: taskStatusSchema,
+  note: z.string().optional(),
   synthetic: z.literal(true),
 });
 export type WorkspaceTask = z.infer<typeof workspaceTaskSchema>;
@@ -181,3 +191,29 @@ export const workspaceOfferSchema = z.object({
   synthetic: z.literal(true),
 });
 export type WorkspaceOffer = z.infer<typeof workspaceOfferSchema>;
+
+/* ---------- M06: programs and permission states (Layer 2, more tenant types) ---------- */
+
+/**
+ * A program, service or notice owned by a workspace (institution services,
+ * community initiatives, school programs). Same draft -> published lifecycle
+ * as an offer; drafts stay inside the workspace. `objectId` optionally points
+ * at an existing civic object so the program can link to its map pin.
+ */
+export const programStatusSchema = z.enum(['draft', 'published']);
+export type ProgramStatus = z.infer<typeof programStatusSchema>;
+
+export const workspaceProgramSchema = z.object({
+  id: z.string().min(1),
+  workspaceId: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  status: programStatusSchema,
+  objectId: z.string().min(1).optional(),
+  synthetic: z.literal(true),
+});
+export type WorkspaceProgram = z.infer<typeof workspaceProgramSchema>;
+
+/** Who is acting: a member's role and whether their invitation was accepted. */
+export const memberStatusSchema = z.enum(['active', 'invited']);
+export type MemberStatus = z.infer<typeof memberStatusSchema>;
