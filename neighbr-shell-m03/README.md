@@ -2,7 +2,7 @@
 
 A responsive, map-first front-end shell for Neighbr, built for COMP 8967 with **synthetic data and mock services only**. There is no backend, no authentication and no production access.
 
-**Current state: milestones M01–M05 merged into one codebase.** M05, the BIA and Business tenant workspaces (tag `m05-bia-business`), is the latest milestone; M02 entry and profiles were built into this merge as a backfill on 25 Oct 2026 (its portal week ended 4 Oct, so that part is LATE — see `docs/M02_EVIDENCE.md`). Later milestones fill in the remaining stub routes.
+**Current state: milestones M01–M06 in one codebase.** M06, the institution, school and community organization workspaces, is the latest milestone (not yet tagged: team-only steps are open, see `docs/M06_EVIDENCE.md`). M05, the BIA and Business tenant workspaces (tag `m05-bia-business`), built the shell M06 reuses; M02 entry and profiles were built into this merge as a backfill on 25 Oct 2026 (its portal week ended 4 Oct, so that part is LATE — see `docs/M02_EVIDENCE.md`). Later milestones fill in the remaining stub routes.
 
 ## Run it
 
@@ -31,6 +31,7 @@ The basemap uses OpenStreetMap raster tiles at low volume (attribution is shown)
 - `/map?city=miami` an empty state. `/map?demo=error` and `/map?demo=loading` show the error and loading states.
 - `/bia` the BIA workspace: dashboard, members, corridor listings, offers, events, tasks and the community→BIA→outcome signal loop.
 - `/business` the Business workspace (switch tenants, or `?ws=ws-biz-hardware`): claimed listings, claimable businesses, draft/publish offers, events and work queue.
+- `/institution` the institution dashboard (Sample Riverside Public Library) and the school workspaces (`?ws=ws-school-elementary`, and `?ws=ws-school-academy` which is restricted and read-only). `/organization` community organizations (`?ws=ws-org-neighbours`, and `?ws=ws-org-trail` which is still onboarding). On each, use **View as** to switch person and open **Roles & access** to see what each role can do and why. An invited person has no access until they accept.
 - `/businesses` the public business directory with claim state, and `/events` the public events view.
 - `/signin` sign-in shell (pending / denied / expired / recovery states, all demo), `/signup` account creation with individual and organization branches and onboarding journeys, `/profile` fixed demo profile with privacy controls, `/settings` account, privacy and accessibility shells. None of these create a real account or store anything.
 - `/status` route coverage. Every required route exists, and stubs name the milestone that builds them.
@@ -61,4 +62,4 @@ One civic-object model (`CivicObject`) drives the list, the pins and the detail 
 - Cluster circles do not show counts, because count labels need a hosted font service. The results list gives the numbers.
 - Sign-in, onboarding, posts, polls and the rest of Layer 2 are later milestones. See `docs/RTM.md` and `/status`.
 
-See `docs/ARCHITECTURE.md` for decisions, `docs/RAID.md` for risks and known limitations, and `docs/M05_EVIDENCE.md` plus `docs/M05_WORKSPACE_CONFIG.md` for the current milestone's evidence and workspace configuration.
+See `docs/ARCHITECTURE.md` for decisions, `docs/RAID.md` for risks and known limitations, `docs/M06_EVIDENCE.md` and `docs/M06_ROLES_AND_PERMISSIONS.md` for the current milestone, and `docs/M05_EVIDENCE.md` plus `docs/M05_WORKSPACE_CONFIG.md` for the shell it reuses.

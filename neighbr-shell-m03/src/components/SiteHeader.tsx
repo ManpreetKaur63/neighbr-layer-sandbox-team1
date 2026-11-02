@@ -13,6 +13,8 @@ export function SiteHeader() {
         <Link href="/businesses">Businesses</Link>
         <Link href="/bia">BIA</Link>
         <Link href="/business">Business</Link>
+        <Link href="/institution">Institution</Link>
+        <Link href="/organization">Organization</Link>
         <Link href="/signin">Sign in</Link>
         <Link href="/profile">Profile</Link>
         <Link href="/status">Build status</Link>

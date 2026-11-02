@@ -1,6 +1,6 @@
 # Route coverage matrix
 
-Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same data drives the `/status` page.
+Generated from `src/lib/routes.ts` for milestones M01–M06. The same data drives the `/status` page.
 
 | Route | Family | Milestone | Status | Data source | States covered | Test |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,8 +22,8 @@ Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same dat
 | `/messages` | Community | M04 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/marketplace` | Community | M04 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/businesses` | Community | M05 | Built | Mock services (`/mock`): business kind + WorkspacePort claim state | loading, empty, error, success | unit `workspace-port.test.ts` |
-| `/institution` | Institutional | M06 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
-| `/organization` | Institutional | M06 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
+| `/institution` | Institutional | M06 | Built | WorkspacePort (members, tasks, programs, roles) for the institution and two school tenants | loading, error (unknown `?ws=`), success; restricted, onboarding and no-access (invited) states per tenant | unit `workspace-m06.test.ts`, `permissions.test.ts` |
+| `/organization` | Institutional | M06 | Built | WorkspacePort (members, tasks, programs, roles) for two community organization tenants | loading, error (unknown `?ws=`), success; onboarding and no-access (invited) states | unit `workspace-m06.test.ts`, `permissions.test.ts` |
 | `/representative` | Institutional | M07 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/business` | Institutional | M05 | Built | WorkspacePort (members, tasks, offers, claim) + mock objects | loading, empty, error, success | unit `workspace-port.test.ts` |
 | `/bia` | Institutional | M05 | Built | WorkspacePort (members, tasks, offers, claim) + mock objects | loading, empty, error, success | unit `workspace-port.test.ts` |
@@ -38,4 +38,4 @@ Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same dat
 | `/accessibility` | Delivery support | M09 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/status` | Delivery support | M03 | Built | `routes.ts` | success | e2e route responds (sampled); build prerenders it |
 
-33 routes: 16 built, 2 partly built, 15 stubs. Stubs show the shared empty or restricted state and link back to the map.
+33 routes: 18 built, 2 partly built, 13 stubs. Stubs show the shared empty or restricted state and link back to the map.

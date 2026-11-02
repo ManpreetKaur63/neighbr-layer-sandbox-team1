@@ -1,4 +1,5 @@
 import type { WorkspaceKind } from './schemas';
+import { routeForKind } from './workspace-config';
 
 /**
  * M05 cross-journey helpers. These are the only places that know which
@@ -6,9 +7,13 @@ import type { WorkspaceKind } from './schemas';
  * and the workspace pages can never drift apart.
  */
 
-/** Workspace deep link, e.g. `/business?ws=ws-biz-bakery`. */
+/**
+ * Workspace deep link, e.g. `/business?ws=ws-biz-bakery`. M06: the route comes
+ * from the per-kind configuration, so institutions and schools share
+ * `/institution` and community organizations use `/organization`.
+ */
 export function workspaceHref(kind: WorkspaceKind, workspaceId: string): string {
-  return kind === 'bia' ? `/bia?ws=${workspaceId}` : `/business?ws=${workspaceId}`;
+  return `${routeForKind(kind)}?ws=${workspaceId}`;
 }
 
 /** Map deep link that selects one civic object, e.g. `/map?sel=w-bakery`. */

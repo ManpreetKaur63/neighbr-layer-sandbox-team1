@@ -13,3 +13,12 @@
 | I2 | Issue | Layer 2 workspaces, onboarding, posts and polls are not built | Team | Scheduled in M02, M04 to M08. Stubs make routes real now. | Planned |
 | I3 | Issue | Manual keyboard and screen-reader pass has not been done | Quality lead | axe scan passes for `/map`. Manual review scheduled in M09. | Open |
 | D1 | Dependency | Frozen compatibility profile and clarification log are in the control repository | Delivery lead | Check them against ADR-001 before the next gate. | Open |
+
+## M06 additions
+
+| ID | Type | Item | Owner | Response | Status |
+| --- | --- | --- | --- | --- | --- |
+| R6 | Risk | The "view as" role switch could be mistaken for real access control | Team | Labelled a demo role switch in the shell and on the Roles & access tab; no authentication exists. A production workspace service must check a real signed-in identity (M05-D3 stays open for production). | Open |
+| R7 | Risk | School and community-organization workspaces could be read as holding real people's data | Team | Demo names only; per-kind safeguard notices (no student records, no contact details or donations). Do not add real or student data to fixtures. | Mitigated |
+| I4 | Issue | New tenants have no pins on the shared map; their programs link only to existing map objects | Team | Fixtures left unchanged so the Windsor result counts pinned by the map tests do not move. Add tenant pins as a follow-up with the tests updated to derive counts from the fixtures. | Open |
+| I5 | Issue | Fixture `w-ward` points at workspace `ws-ward-sample`, which does not exist, so its "Open in workspace" link shows "Workspace not found" | Team | Found while reading the fixtures; belongs to the Representative workspace (M07). Not changed in M06. | Open |
