@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — M06 request journey (Messages and Marketplace built)
+- One request followed from the person, through the organization, and back. New `RequestPort` (`src/services/ports/index.ts`), request schema (`civicRequestSchema`), shared rules (`src/lib/requests.ts`) and a mock service with a store the pages share (`src/services/mock/requests.ts`). Statuses: submitted, in review, needs more information, declined, resolved; every change is written to a history; decline, question and resolution need a note.
+- Screens: a **Requests** tab (work queue) on the BIA and Business workspaces; **Messages** (`/messages`) is now the person's side of the journey (status, who can view or change it, record of what happened, reply, follow-up); **Marketplace** (`/marketplace`) lists published offers and sends a Request address request to the business. The report form also sends the issue to the BIA queue, and the issue on the map and Pulse follows the request status. Updates appear in Notifications.
+- Permissions: handler actions use the same `decide` rule as the workspaces; a view-only member sees disabled controls with the reason, and the service rejects with "Not allowed: ...".
+- Route inventory: Marketplace built, Messages partly built. 33 routes: 19 built, 3 partly built, 11 stubs (M06 start: 18 / 2 / 13).
+- Tests: 21 new (`requests-port.test.ts` 16, `request-journey-ui.test.tsx` 5). Real run: lint 0, typecheck pass, 127 of 127 tests, production build 35 routes. Playwright and the axe scan were not run.
+- Not changed: authentication (still none, "View as" is a demonstration), persistence (a full reload resets the shared state), direct and group chats, map fixtures.
+
+## Unreleased — M06 Institution, community organization and school workspaces
+
+### Review feedback (2 November 2026)
+- BIA directory, events and counts limited to the BIA's boundary (`boundaryId`, `src/lib/geo.ts`).
+- Reported issues carry a place; routing by boundary; issues outside every BIA stay on the map with a message.
+- Request store saved in the browser session; reported issues shared with all pages.
+- Phone map layout: two-row header, smaller results sheet (42% of the screen visible as map at 390x844, was 20%).
+- Evidence: `docs/evidence/m06/` (26 screenshots, 72-second video, script). 134 tests in 16 files.
+
+- Same reusable shell, three more tenant types: `kind` now includes `institution`, `organization` and `school`. Per-kind configuration in `src/lib/workspace-config.ts` (tabs, role names, wording, safeguards). `/institution` serves the institution and school tenants (`?ws=` picks one); `/organization` serves community organizations. Both routes were stubs; the required route count is unchanged (33).
+- Institution dashboard shell: Sample Riverside Public Library (verified) with dashboard tiles, an "awaiting publication" list, services and programs, members, events and tasks.
+- School / education workspace: Sample Riverside Elementary School (verified) and Sample Riverside Language Academy (restricted, read-only). Guardian-facing programs and notices only; no student records.
+- Community organization workspace: Sample Riverside Neighbours Association (verified) and Sample Friends of the Trail (onboarding). Initiatives, members and volunteers, events and tasks.
+- Role and permission-state demonstrations: new pure rule `decide` in `src/lib/permissions.ts` (role x invitation state x workspace access state); a "view as" switch on every workspace; a Roles & access tab with a role matrix, an access-state matrix and the reason for each decision; disabled controls say why.
+- `WorkspacePort` additions: `programs`, `createProgram`, `publishProgram`, `inviteMember`, `changeMemberRole` (never leaves a workspace without an active owner), `acceptInvite`. Every mutating method takes an optional actor and rejects with "Not allowed: ...". A restricted workspace now rejects every change, with or without an actor. Calls without an actor behave exactly as in M05.
+- Tests: 29 new (`permissions.test.ts` 12, `workspace-m06.test.ts` 17), all against the port and the pure rule.
+- Not changed: map fixtures (the new tenants have no pins yet), authentication (still none), messages/documents/analytics (still not built).
+
+
 ## Unreleased — M01–M05 merged codebase
 
 This merge keeps, in one codebase: M01 delivery foundation (repo structure, CI, route inventory, evidence index templates), M02 entry and profiles (built here as a backfill — see below), M03 map environment, M04 social layer, and M05 BIA and Business workspaces. Nothing from the uploaded M04 zip was lost: that zip is byte-identical to the M04 delivery the M05 work was already built on, so the merge is M04 + M05 + the new M02 shells, not a replacement of either.
