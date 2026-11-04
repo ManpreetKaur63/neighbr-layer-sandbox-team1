@@ -5,10 +5,19 @@ on:
     branches: [main]
 
 jobs:
+<<<<<<< HEAD
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+=======
+ verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci

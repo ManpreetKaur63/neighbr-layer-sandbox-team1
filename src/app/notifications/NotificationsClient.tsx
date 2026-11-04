@@ -1,15 +1,27 @@
 'use client';
 
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
 import { createMockServices } from '@/services/mock';
+=======
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { SiteHeader } from '@/components/SiteHeader';
+import { StateBoundary } from '@/components/StateBoundary';
+import { useServices } from '@/services/use-services';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import type { NotificationItem } from '@/lib/schemas';
 
 /** Notifications (M04): activity updates for the demo identity. */
 export function NotificationsClient() {
+<<<<<<< HEAD
   const services = useMemo(() => createMockServices(), []);
+=======
+  const services = useServices();
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [failed, setFailed] = useState(false);
 

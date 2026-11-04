@@ -34,6 +34,15 @@ export const civicObjectSchema = z.object({
   status: z.string().min(1),
   visibility: visibilitySchema,
   workspaceId: z.string().optional(),
+<<<<<<< HEAD
+=======
+  /**
+   * Set when a workspace has taken this record on (e.g. a BIA turns a community
+   * issue into a task). The map detail panel and feeds show it, so the person
+   * who reported the issue can see what happened next.
+   */
+  handledBy: z.object({ workspaceId: z.string().min(1), taskId: z.string().min(1) }).optional(),
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   updatedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
   tags: z.array(z.string()),
   /** Polls and similar actions limited to verified residents of the object's city. */
@@ -132,6 +141,15 @@ export const workspaceSchema = z.object({
   cityId: z.string().min(1),
   status: workspaceStatusSchema,
   summary: z.string().min(1),
+<<<<<<< HEAD
+=======
+  /**
+   * BIA workspaces own a geographic boundary (id of a boundary feature). The
+   * directory, events and community signals of a BIA are limited to records
+   * inside it, never the whole city.
+   */
+  boundaryId: z.string().min(1).optional(),
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   synthetic: z.literal(true),
 });
 export type Workspace = z.infer<typeof workspaceSchema>;
@@ -163,6 +181,11 @@ export const workspaceTaskSchema = z.object({
   title: z.string().min(1),
   kind: taskKindSchema,
   status: taskStatusSchema,
+<<<<<<< HEAD
+=======
+  /** The civic object (e.g. a community issue) this task was raised from. */
+  sourceObjectId: z.string().min(1).optional(),
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   synthetic: z.literal(true),
 });
 export type WorkspaceTask = z.infer<typeof workspaceTaskSchema>;

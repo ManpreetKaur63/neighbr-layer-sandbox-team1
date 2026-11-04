@@ -26,6 +26,11 @@ import {
   type WorkspaceTask,
 } from '@/lib/schemas';
 import { filterObjects } from '@/lib/query';
+<<<<<<< HEAD
+=======
+import { pointInRing } from '@/lib/geo';
+import type { LngLat } from '@/lib/schemas';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import type { Services, SocialPort, WorkspacePort } from '../ports';
 
 export interface MockOptions {
@@ -35,6 +40,15 @@ export interface MockOptions {
   failObjects?: boolean;
   /** Return no objects, to demonstrate the empty state. */
   emptyObjects?: boolean;
+<<<<<<< HEAD
+=======
+  /**
+   * sessionStorage key. When set, every write is saved and the state is restored
+   * when the services are created again (e.g. after a full page load), so a demo
+   * journey carries across screens. Unset (the default) keeps instances isolated.
+   */
+  persistKey?: string;
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 }
 
 /** Fixtures are validated against the shared contracts the moment the module loads. */
@@ -89,6 +103,10 @@ const SEED_WORKSPACES: Workspace[] = [
   workspaceSchema.parse({
     id: 'ws-bia-sample', kind: 'bia', name: 'Sample Olde Riverside BIA', cityId: 'windsor',
     status: 'verified', summary: 'Corridor workspace for the Olde Riverside business area.',
+<<<<<<< HEAD
+=======
+    boundaryId: 'olde-riverside-corridor',
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     synthetic: true,
   }),
   workspaceSchema.parse({
@@ -116,7 +134,11 @@ const SEED_MEMBERS: WorkspaceMember[] = [
 /** The BIA signal loop (M05 WP4) is traced through this task: community issue -> workspace task -> outcome. */
 const SEED_TASKS: WorkspaceTask[] = [
   workspaceTaskSchema.parse({ id: 't-bia-vacancy', workspaceId: 'ws-bia-sample', title: 'Follow up the vacant storefront listing', kind: 'vacancy', status: 'open', synthetic: true }),
+<<<<<<< HEAD
   workspaceTaskSchema.parse({ id: 't-bia-works', workspaceId: 'ws-bia-sample', title: 'Track roadworks affecting shop access', kind: 'city-works', status: 'in-progress', synthetic: true }),
+=======
+  workspaceTaskSchema.parse({ id: 't-bia-works', workspaceId: 'ws-bia-sample', title: 'Track roadworks affecting shop access', kind: 'city-works', status: 'in-progress', sourceObjectId: 'w-roadworks', synthetic: true }),
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   workspaceTaskSchema.parse({ id: 't-bia-market', workspaceId: 'ws-bia-sample', title: 'Publish the Saturday market update', kind: 'event', status: 'open', synthetic: true }),
   workspaceTaskSchema.parse({ id: 't-bak-hours', workspaceId: 'ws-biz-bakery', title: 'Confirm market-day opening hours', kind: 'listing', status: 'in-progress', synthetic: true }),
   workspaceTaskSchema.parse({ id: 't-bak-offer', workspaceId: 'ws-biz-bakery', title: 'Publish the weekend offer', kind: 'offer', status: 'open', synthetic: true }),
@@ -135,7 +157,11 @@ const NEXT_TASK_STATUS: Record<Exclude<TaskStatus, 'done'>, TaskStatus> = {
 };
 
 export function createMockServices(options: MockOptions = {}): Services {
+<<<<<<< HEAD
   const { latencyMs = 0, failObjects = false, emptyObjects = false } = options;
+=======
+  const { latencyMs = 0, failObjects = false, emptyObjects = false, persistKey } = options;
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
   // Working copy per factory call: writes (votes, reports, polls) stay in-session
   // and never leak into the validated fixtures or other factory instances.
@@ -151,6 +177,11 @@ export function createMockServices(options: MockOptions = {}): Services {
   let commentSeq = SEED_COMMENTS.length;
   let issueSeq = 0;
   let pollSeq = 0;
+<<<<<<< HEAD
+=======
+  let noteSeq = SEED_NOTIFICATIONS.length;
+  let taskSeq = SEED_TASKS.length;
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
   // M05 workspace state: per-factory copies, so claims, tasks and offers never
   // leak into the fixtures or into another factory instance (as in M04).
@@ -160,6 +191,119 @@ export function createMockServices(options: MockOptions = {}): Services {
   const offers: WorkspaceOffer[] = SEED_OFFERS.map((o) => ({ ...o }));
   let offerSeq = SEED_OFFERS.length;
 
+<<<<<<< HEAD
+=======
+  // The seeded signal-loop task is already linked to its community issue.
+  for (const t of tasks) {
+    const source = t.sourceObjectId ? objects.find((o) => o.id === t.sourceObjectId) : undefined;
+    if (source && !source.handledBy) source.handledBy = { workspaceId: t.workspaceId, taskId: t.id };
+  }
+
+  // ---- Session persistence (opt-in). Saved after every write, validated on restore. ----
+  const storage = (): Storage | null => {
+    if (!persistKey || typeof window === 'undefined') return null;
+    try {
+      return window.sessionStorage;
+    } catch {
+      return null;
+    }
+  };
+  const replace = <T,>(target: T[], next: T[]) => {
+    target.splice(0, target.length, ...next);
+  };
+  function restore() {
+    const store = storage();
+    if (!store || !persistKey) return;
+    try {
+      const raw = store.getItem(persistKey);
+      if (!raw) return;
+      const snap = JSON.parse(raw) as Record<string, unknown>;
+      if (snap.v !== 1) return;
+      const next = {
+        objects: z.array(civicObjectSchema).parse(snap.objects),
+        comments: z.array(commentSchema).parse(snap.comments),
+        notifications: z.array(notificationSchema).parse(snap.notifications),
+        workspaces: z.array(workspaceSchema).parse(snap.workspaces),
+        members: z.array(workspaceMemberSchema).parse(snap.members),
+        tasks: z.array(workspaceTaskSchema).parse(snap.tasks),
+        offers: z.array(workspaceOfferSchema).parse(snap.offers),
+        likes: z.array(z.tuple([z.string(), z.number()])).parse(snap.likes),
+        liked: z.array(z.string()).parse(snap.liked),
+        saved: z.array(z.string()).parse(snap.saved),
+        following: z.array(z.string()).parse(snap.following),
+        seq: z.record(z.string(), z.number()).parse(snap.seq),
+      };
+      replace(objects, next.objects as CivicObject[]);
+      replace(comments, next.comments);
+      replace(notifications, next.notifications);
+      replace(workspaces, next.workspaces);
+      replace(members, next.members);
+      replace(tasks, next.tasks);
+      replace(offers, next.offers);
+      likeCounts.clear();
+      next.likes.forEach(([k, v]) => likeCounts.set(k, v));
+      likedIds.clear();
+      next.liked.forEach((x) => likedIds.add(x));
+      savedIds.clear();
+      next.saved.forEach((x) => savedIds.add(x));
+      followingIds.clear();
+      next.following.forEach((x) => followingIds.add(x));
+      commentSeq = next.seq.comment ?? commentSeq;
+      issueSeq = next.seq.issue ?? issueSeq;
+      pollSeq = next.seq.poll ?? pollSeq;
+      offerSeq = next.seq.offer ?? offerSeq;
+      noteSeq = next.seq.note ?? noteSeq;
+      taskSeq = next.seq.task ?? taskSeq;
+    } catch {
+      // A stale or corrupt snapshot is ignored: the demo simply starts from the fixtures.
+      store.removeItem(persistKey);
+    }
+  }
+  function commit() {
+    const store = storage();
+    if (!store || !persistKey) return;
+    try {
+      store.setItem(
+        persistKey,
+        JSON.stringify({
+          v: 1,
+          objects, comments, notifications, workspaces, members, tasks, offers,
+          likes: [...likeCounts.entries()],
+          liked: [...likedIds],
+          saved: [...savedIds],
+          following: [...followingIds],
+          seq: { comment: commentSeq, issue: issueSeq, poll: pollSeq, offer: offerSeq, note: noteSeq, task: taskSeq },
+        }),
+      );
+    } catch {
+      // Storage full or blocked: the demo keeps working in memory.
+    }
+  }
+  restore();
+
+  /** Wrap the named write methods of a port so each successful write is saved. */
+  function persisting<T extends object>(port: T, names: (keyof T)[]): T {
+    const out = { ...port } as Record<string, unknown>;
+    for (const name of names) {
+      const fn = port[name] as unknown as (...args: unknown[]) => Promise<unknown>;
+      out[name as string] = async (...args: unknown[]) => {
+        const result = await fn(...args);
+        commit();
+        return result;
+      };
+    }
+    return out as T;
+  }
+
+  function notify(title: string, body: string, href: string) {
+    notifications.unshift(
+      notificationSchema.parse({
+        id: `n-local-${(noteSeq += 1)}`, title, body, createdAt: today(), read: false, href, synthetic: true,
+      }),
+    );
+  }
+
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   function workspaceOrThrow(id: string): Workspace {
     const found = workspaces.find((w) => w.id === id);
     if (!found) throw new Error(`Workspace "${id}" not found.`);
@@ -172,7 +316,41 @@ export function createMockServices(options: MockOptions = {}): Services {
     return found;
   }
 
+<<<<<<< HEAD
   const social: SocialPort = {
+=======
+  function boundaryRing(id: string): LngLat[] | null {
+    const feature = FIXTURES.boundaries.features.find((f) => f.properties.id === id);
+    return (feature?.geometry.coordinates[0] as LngLat[] | undefined) ?? null;
+  }
+
+  /**
+   * The signal loop: a task raised from a community issue carries its progress back
+   * to that issue. In progress -> the issue says so; done -> the issue is Resolved
+   * and gains a published outcome. Each step notifies the community.
+   */
+  function syncSourceObject(task: WorkspaceTask) {
+    const issue = task.sourceObjectId ? objects.find((o) => o.id === task.sourceObjectId) : undefined;
+    if (!issue || issue.kind !== 'issue') return;
+    const workspace = workspaces.find((w) => w.id === task.workspaceId);
+    const who = workspace?.name ?? 'The BIA';
+    issue.handledBy = { workspaceId: task.workspaceId, taskId: task.id };
+    issue.updatedAt = today();
+    if (task.status === 'in-progress') {
+      issue.status = 'In progress';
+      notify('Work has started', `${who} has started work on “${issue.title}”.`, `/map?sel=${issue.id}`);
+    } else if (task.status === 'done') {
+      issue.status = 'Resolved';
+      issue.outcome = {
+        summary: `${who} completed “${task.title}”. The nearby shops and neighbours were told.`,
+        date: today(),
+      };
+      notify('Your issue was resolved', `${who} closed “${issue.title}”. See the outcome on the map.`, `/map?sel=${issue.id}`);
+    }
+  }
+
+  const socialBase: SocialPort = {
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     async likes(objectId) {
       await wait(latencyMs);
       objectOrThrow(objectId);
@@ -275,7 +453,11 @@ export function createMockServices(options: MockOptions = {}): Services {
         title,
         summary: input.summary.trim() || 'Reported from the Neighbr shell (demo).',
         cityId: input.cityId,
+<<<<<<< HEAD
         geo: { type: 'point', coordinates: [-83.037, 42.317] },
+=======
+        geo: { type: 'point', coordinates: input.coordinates ?? ([-83.037, 42.317] as LngLat) },
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
         status: 'Open',
         visibility: 'public',
         updatedAt: today(),
@@ -315,7 +497,11 @@ export function createMockServices(options: MockOptions = {}): Services {
     },
   };
 
+<<<<<<< HEAD
   const workspacesPort: WorkspacePort = {
+=======
+  const workspacesBase: WorkspacePort = {
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     async workspaces() {
       await wait(latencyMs);
       return workspaces.map((w) => ({ ...w }));
@@ -345,6 +531,10 @@ export function createMockServices(options: MockOptions = {}): Services {
         throw new Error(`Task can only move from ${task.status} to ${NEXT_TASK_STATUS[task.status]}.`);
       }
       task.status = status;
+<<<<<<< HEAD
+=======
+      syncSourceObject(task);
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       return { ...task };
     },
     async offers(workspaceId) {
@@ -393,15 +583,71 @@ export function createMockServices(options: MockOptions = {}): Services {
       object.workspaceId = workspaceId;
       return { ...object };
     },
+<<<<<<< HEAD
   };
 
+=======
+    async raiseTaskFromIssue(workspaceId, issueId) {
+      await wait(latencyMs);
+      const workspace = workspaceOrThrow(workspaceId);
+      if (workspace.kind !== 'bia' || !workspace.boundaryId) {
+        throw new Error('Only a BIA workspace with a boundary can take on community issues.');
+      }
+      if (workspace.status !== 'verified') throw new Error('Only a verified workspace can take on community issues.');
+      const issue = objectOrThrow(issueId);
+      if (issue.kind !== 'issue') throw new Error('Only a community issue can be turned into a task.');
+      if (issue.handledBy) throw new Error('This issue is already being handled.');
+      const ring = boundaryRing(workspace.boundaryId);
+      if (!ring || !pointInRing(issue.geo.coordinates, ring)) {
+        throw new Error('This issue is outside the BIA boundary, so this BIA cannot take it on.');
+      }
+      const task = workspaceTaskSchema.parse({
+        id: `task-local-${Date.now()}-${(taskSeq += 1)}`,
+        workspaceId,
+        title: `Respond to: ${issue.title}`,
+        kind: 'general',
+        status: 'open',
+        sourceObjectId: issue.id,
+        synthetic: true,
+      });
+      tasks.push(task);
+      issue.handledBy = { workspaceId, taskId: task.id };
+      issue.status = 'Acknowledged';
+      issue.updatedAt = today();
+      notify(
+        'Your report was acknowledged',
+        `${workspace.name} has taken on “${issue.title}”. You will be told when it moves.`,
+        `/map?sel=${issue.id}`,
+      );
+      return { ...task };
+    },
+  };
+
+  const social = persisting(socialBase, [
+    'react', 'unreact', 'addComment', 'toggleSave', 'follow', 'unfollow',
+    'markNotificationsRead', 'vote', 'reportIssue', 'createPoll',
+  ]);
+  const workspacesPort = persisting(workspacesBase, [
+    'updateTask', 'createOffer', 'publishOffer', 'claimListing', 'raiseTaskFromIssue',
+  ]);
+
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   return {
     objects: {
       async list(query) {
         await wait(latencyMs);
         if (failObjects) throw new Error('The mock service was told to fail (demo=error).');
         if (emptyObjects) return [];
+<<<<<<< HEAD
         return filterObjects(objects, query);
+=======
+        let ring: LngLat[] | undefined;
+        if (query.boundaryId) {
+          ring = boundaryRing(query.boundaryId) ?? undefined;
+          if (!ring) throw new Error(`Boundary "${query.boundaryId}" not found.`);
+        }
+        return filterObjects(objects, query, ring);
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       },
       async get(id) {
         await wait(latencyMs);
@@ -416,6 +662,13 @@ export function createMockServices(options: MockOptions = {}): Services {
           features: FIXTURES.boundaries.features.filter((f) => f.properties.cityId === cityId),
         };
       },
+<<<<<<< HEAD
+=======
+      async get(id) {
+        await wait(latencyMs);
+        return FIXTURES.boundaries.features.find((f) => f.properties.id === id) ?? null;
+      },
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     },
     cities: {
       async list() {

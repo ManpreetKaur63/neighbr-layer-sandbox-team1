@@ -4,7 +4,11 @@ import { SiteHeader } from './SiteHeader';
 import type { Workspace, WorkspaceKind } from '@/lib/schemas';
 import { workspaceHref } from '@/lib/workspace';
 
+<<<<<<< HEAD
 export type WorkspaceTab = 'overview' | 'members' | 'listings' | 'offers' | 'events' | 'tasks';
+=======
+export type WorkspaceTab = 'overview' | 'members' | 'listings' | 'offers' | 'events' | 'signals' | 'tasks';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
 export const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -12,6 +16,10 @@ export const WORKSPACE_TABS: { id: WorkspaceTab; label: string }[] = [
   { id: 'listings', label: 'Listings' },
   { id: 'offers', label: 'Offers' },
   { id: 'events', label: 'Events' },
+<<<<<<< HEAD
+=======
+  { id: 'signals', label: 'Community signals' },
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   { id: 'tasks', label: 'Tasks' },
 ];
 
@@ -73,7 +81,11 @@ export function WorkspaceShell({
           </p>
         )}
         <nav aria-label="Workspace" className="pill-row" style={{ margin: '1rem 0' }}>
+<<<<<<< HEAD
           {WORKSPACE_TABS.map((t) => (
+=======
+          {WORKSPACE_TABS.filter((t) => t.id !== 'signals' || workspace.kind === 'bia').map((t) => (
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
             <button
               key={t.id}
               type="button"

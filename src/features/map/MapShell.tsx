@@ -12,13 +12,24 @@ import type {
 import { resolveVisit } from '@/lib/visit';
 import type { Services } from '@/services/ports';
 import { createMockServices } from '@/services/mock';
+<<<<<<< HEAD
+=======
+import { getSessionServices } from '@/services/session';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import { MapLibreAdapter } from '@/map/maplibre-adapter';
 import { BOUNDARY_ID_PREFIX, type MapPort, type MapPortFactory } from '@/map/map-port';
 import type { ViewState } from '@/components/StateBoundary';
 import { MapCanvas } from './MapCanvas';
+<<<<<<< HEAD
 import { TopBar } from './TopBar';
 import { ResultsPanel } from './ResultsPanel';
 import { DetailPanel, type Selection } from './DetailPanel';
+=======
+import { ContextPill, LensSwitch, TopBar } from './TopBar';
+import { useIsPhone } from './use-is-phone';
+import { ResultsPanel } from './ResultsPanel';
+import { DetailPanel, type BoundaryInfo, type Selection } from './DetailPanel';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import { DestinationDialog } from './DestinationDialog';
 import { useUrlState } from './use-url-state';
 import styles from './map.module.css';
@@ -53,6 +64,7 @@ interface ShellProps {
 export function MapShell({ services: injected, mapFactory = defaultFactory }: ShellProps) {
   const { state, update, ready } = useUrlState();
   // The ?demo= switch only affects the mock adapters, so people can see loading, error and empty states.
+<<<<<<< HEAD
   const services = useMemo(
     () =>
       injected ??
@@ -61,6 +73,20 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
         failObjects: state.demo === 'error',
         emptyObjects: state.demo === 'empty',
       }),
+=======
+  // Normal browsing uses the shared demo session, so reports, claims and BIA actions made on other
+  // screens show up here. The demo switches need their own isolated instance so they never poison it.
+  const services = useMemo(
+    () =>
+      injected ??
+      (state.demo
+        ? createMockServices({
+            latencyMs: state.demo === 'loading' ? 4000 : 0,
+            failObjects: state.demo === 'error',
+            emptyObjects: state.demo === 'empty',
+          })
+        : getSessionServices()),
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     [injected, state.demo],
   );
 
@@ -72,7 +98,15 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
   const [fetchedObject, setFetchedObject] = useState<CivicObject | null>(null);
   const [port, setPort] = useState<MapPort | null>(null);
   const [destinationOpen, setDestinationOpen] = useState(false);
+<<<<<<< HEAD
   const [sheetOpen, setSheetOpen] = useState(true);
+=======
+  // Phone bottom sheet: 'peek' keeps the map dominant, 'half' shows results, 'full' is for reading.
+  // On larger screens the side panel is always open and this state is ignored.
+  const isPhone = useIsPhone();
+  const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('peek');
+  const bodyOpen = !isPhone || sheet !== 'peek';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
   const kindsKey = state.kinds.join(',');
   // A result belongs to one request. Anything else means "still loading", so no state is set synchronously.
@@ -167,10 +201,41 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [port, city?.id]);
 
+<<<<<<< HEAD
   const select = useCallback(
     (id: string) => {
       update({ sel: id }, { push: true });
       setSheetOpen(true);
+=======
+  // Businesses inside a selected area, and the BIA that owns it, so the outline is more than a drawing.
+  const selectedBoundaryId = state.sel?.startsWith(BOUNDARY_ID_PREFIX) ? state.sel.slice(BOUNDARY_ID_PREFIX.length) : null;
+  const [boundaryResult, setBoundaryResult] = useState<{ id: string; info: BoundaryInfo } | null>(null);
+  useEffect(() => {
+    if (!selectedBoundaryId) return;
+    let cancelled = false;
+    Promise.all([
+      services.objects.list({ cityId: state.city, kinds: ['business'], boundaryId: selectedBoundaryId }),
+      services.workspaces.workspaces(),
+    ])
+      .then(([businesses, all]) => {
+        if (cancelled) return;
+        const bia = all.find((w) => w.kind === 'bia' && w.boundaryId === selectedBoundaryId);
+        setBoundaryResult({ id: selectedBoundaryId, info: { businesses, biaWorkspaceId: bia?.id ?? null } });
+      })
+      .catch(() => {
+        if (!cancelled) setBoundaryResult(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [services, state.city, selectedBoundaryId]);
+  const boundaryInfo = boundaryResult && boundaryResult.id === selectedBoundaryId ? boundaryResult.info : null;
+
+  const select = useCallback(
+    (id: string) => {
+      update({ sel: id }, { push: true });
+      setSheet((v) => (v === 'peek' ? 'half' : v));
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       if (id.startsWith(BOUNDARY_ID_PREFIX)) {
         const f = boundaries.features.find((b) => b.properties.id === id.slice(BOUNDARY_ID_PREFIX.length));
         const ring = f?.geometry.coordinates[0];
@@ -211,7 +276,11 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
   const panelTitle = selection ? 'Details' : `Nearby in ${city?.name ?? '…'}`;
 
   return (
+<<<<<<< HEAD
     <div className={styles.shell} data-sheet={sheetOpen ? 'open' : 'closed'}>
+=======
+    <div className={styles.shell} data-sheet={isPhone ? sheet : 'open'}>
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       <a href="#results" className={styles.skip}>
         Skip to results list
       </a>
@@ -231,11 +300,16 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
         onSearchText={(q) => update({ q })}
         onLens={(lens) => update({ lens, kinds: [] })}
         onOpenDestination={() => setDestinationOpen(true)}
+<<<<<<< HEAD
+=======
+        compact={isPhone}
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       />
 
       <aside className={styles.panel} aria-label={panelTitle}>
         <div className={styles.panelHead}>
           <h1>{panelTitle}</h1>
+<<<<<<< HEAD
           <button
             type="button"
             className={styles.sheetToggle}
@@ -248,6 +322,29 @@ export function MapShell({ services: injected, mapFactory = defaultFactory }: Sh
         {sheetOpen &&
           (selection ? (
             <DetailPanel selection={selection} visit={visit} city={city} onBack={() => update({ sel: null })} />
+=======
+          <span className={styles.panelCount} aria-hidden="true">
+            {status === 'success' ? `${objects.length}` : ''}
+          </span>
+          <button
+            type="button"
+            className={styles.sheetToggle}
+            aria-expanded={sheet !== 'peek'}
+            onClick={() => setSheet((v) => (v === 'peek' ? 'half' : v === 'half' ? 'full' : 'peek'))}
+          >
+            {sheet === 'peek' ? 'Show list' : sheet === 'half' ? 'Expand' : 'Hide list'}
+          </button>
+        </div>
+        {isPhone && sheet !== 'peek' && (
+          <div className={styles.sheetControls}>
+            <LensSwitch lens={state.lens} onLens={(lens) => update({ lens, kinds: [] })} />
+            <ContextPill visit={visit} />
+          </div>
+        )}
+        {bodyOpen &&
+          (selection ? (
+            <DetailPanel selection={selection} visit={visit} city={city} boundaryInfo={boundaryInfo} onBack={() => update({ sel: null })} />
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
           ) : (
             <ResultsPanel
               city={city}
