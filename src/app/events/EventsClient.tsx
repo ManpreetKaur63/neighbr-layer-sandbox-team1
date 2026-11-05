@@ -1,10 +1,18 @@
 'use client';
 
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { StateBoundary } from '@/components/StateBoundary';
 import { createMockServices } from '@/services/mock';
+=======
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { SiteHeader } from '@/components/SiteHeader';
+import { StateBoundary } from '@/components/StateBoundary';
+import { useServices } from '@/services/use-services';
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import { mapHref } from '@/lib/workspace';
 import type { CivicObject } from '@/lib/schemas';
 
@@ -14,7 +22,11 @@ import type { CivicObject } from '@/lib/schemas';
  * show the same events inside a tenant workspace; this page is the public view.
  */
 export function EventsClient() {
+<<<<<<< HEAD
   const services = useMemo(() => createMockServices(), []);
+=======
+  const services = useServices();
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   const [items, setItems] = useState<CivicObject[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [cityName, setCityName] = useState('');

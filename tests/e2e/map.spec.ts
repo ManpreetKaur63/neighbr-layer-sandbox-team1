@@ -103,3 +103,38 @@ for (const [name, size] of [
     expect(overflow).toBe(false);
   });
 }
+
+test('phone: the map keeps most of the screen, with search, results and navigation in reach', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/map'); // the results heading is hidden while the sheet is peeking, so wait for search instead
+  await expect(page.getByRole('searchbox')).toBeVisible();
+  const mapBox = await page.getByRole('region', { name: /Interactive map/ }).boundingBox();
+  const sheet = await page.getByRole('complementary').boundingBox();
+  const search = await page.getByRole('searchbox').boundingBox();
+  const dock = await page.getByRole('navigation', { name: 'Main' }).boundingBox();
+  expect(mapBox && sheet && search && dock).toBeTruthy();
+  // At rest the sheet is a slim bar: the clear map (between the search bar and the sheet) is most of the screen.
+  expect(sheet!.y).toBeGreaterThan(844 * 0.7);
+  expect(search!.y + search!.height).toBeLessThan(90);
+  expect(dock!.y + dock!.height).toBeLessThanOrEqual(844);
+  // Results are one tap away, and navigation stays visible.
+  await page.getByRole('button', { name: 'Show list' }).click();
+  await expect(page.getByRole('heading', { name: 'Places and activity' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Civic pulse' })).toBeVisible();
+});
+
+test('journey: report an issue, the BIA acts on it, the outcome shows on the map', async ({ page }) => {
+  await page.goto('/issues/report');
+  await page.getByLabel(/What.s the issue/).fill('Broken bench by the bakery');
+  await page.getByRole('button', { name: 'File report' }).click();
+  await page.getByRole('link', { name: 'Open the BIA workspace' }).click();
+  const card = page.getByRole('article', { name: /Signal: Broken bench by the bakery/ });
+  await card.getByRole('button', { name: 'Take on as a task' }).click();
+  await card.getByRole('button', { name: 'Start task' }).click();
+  await card.getByRole('button', { name: 'Mark done' }).click();
+  await expect(card).toContainText('Resolved');
+  await card.getByRole('link', { name: /View on map/ }).click();
+  await expect(page.getByRole('heading', { name: 'Broken bench by the bakery' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Outcome' })).toContainText('Sample Olde Riverside BIA completed');
+});

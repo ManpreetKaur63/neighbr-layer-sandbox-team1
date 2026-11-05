@@ -1,5 +1,6 @@
 # Changelog
 
+<<<<<<< HEAD
 ## Unreleased — M06 request journey (Messages and Marketplace built)
 - One request followed from the person, through the organization, and back. New `RequestPort` (`src/services/ports/index.ts`), request schema (`civicRequestSchema`), shared rules (`src/lib/requests.ts`) and a mock service with a store the pages share (`src/services/mock/requests.ts`). Statuses: submitted, in review, needs more information, declined, resolved; every change is written to a history; decline, question and resolution need a note.
 - Screens: a **Requests** tab (work queue) on the BIA and Business workspaces; **Messages** (`/messages`) is now the person's side of the journey (status, who can view or change it, record of what happened, reply, follow-up); **Marketplace** (`/marketplace`) lists published offers and sends a Request address request to the business. The report form also sends the issue to the BIA queue, and the issue on the map and Pulse follows the request status. Updates appear in Notifications.
@@ -26,6 +27,13 @@
 - Tests: 29 new (`permissions.test.ts` 12, `workspace-m06.test.ts` 17), all against the port and the pure rule.
 - Not changed: map fixtures (the new tenants have no pins yet), authentication (still none), messages/documents/analytics (still not built).
 
+=======
+## Unreleased — mobile map space, BIA boundaries, connected demo journey
+- **Mobile layout (≤760px):** one compact top row (brand, search, place). The Social/Civic/Combined switch and the resident/visitor pill move into the bottom sheet (rendered once). The sheet has three states, peek (default), half and full, so the map keeps most of the screen. Main navigation and Beacon stay fixed at the bottom with safe-area insets, `dvh` heights, and map controls/attribution lifted above the sheet.
+- **BIA boundaries:** `Workspace.boundaryId`, `ObjectQuery.boundaryId`, `BoundaryPort.get`, and `src/lib/geo.ts`. The BIA directory, events and signals list only records inside the boundary (3 of 5 Windsor businesses) and say how many were left out. The public `/businesses` page gets an "Only inside <corridor>" filter. A corridor outline on the map lists the businesses inside it.
+- **Connected steps:** all screens now share one demo session (`useServices()`, backed by `sessionStorage`) instead of each creating private copies of the data, which is why changes used to vanish on navigation. `/issues/report` lets you choose a location; `/bia` has a Community signals tab; `WorkspacePort.raiseTaskFromIssue` creates a task from an in-boundary issue; task progress flows back to the issue (Acknowledged → In progress → Resolved with an outcome) and to the reporter's notifications; the map detail panel shows follow-up and outcome. Walkthrough: `docs/DEMO_WALKTHROUGH.md`.
+- Tests: 91 unit/component tests pass (14 new). Two Playwright tests added, not run in the authoring environment.
+>>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
 ## Unreleased — M01–M05 merged codebase
 
