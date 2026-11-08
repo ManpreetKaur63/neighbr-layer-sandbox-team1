@@ -2,11 +2,7 @@
 
 import Link from 'next/link';
 import { KIND_META } from '@/lib/kinds';
-<<<<<<< HEAD
 import { workspaceHrefForObject } from '@/lib/workspace';
-=======
-import { workspaceHref, workspaceHrefForObject } from '@/lib/workspace';
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import type { BoundaryFeature, City, CivicObject } from '@/lib/schemas';
 import type { VisitContext } from '@/lib/visit';
 import styles from './map.module.css';
@@ -31,32 +27,15 @@ const AUTHORITY_LABEL = {
   illustrative: 'Illustrative outline, not an official boundary',
 } as const;
 
-<<<<<<< HEAD
-=======
-/** What lies inside a boundary, and which BIA workspace (if any) owns it. */
-export interface BoundaryInfo {
-  businesses: CivicObject[];
-  biaWorkspaceId: string | null;
-}
-
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 export function DetailPanel({
   selection,
   visit,
   city,
-<<<<<<< HEAD
-=======
-  boundaryInfo,
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   onBack,
 }: {
   selection: Selection;
   visit: VisitContext | null;
   city: City | undefined;
-<<<<<<< HEAD
-=======
-  boundaryInfo?: BoundaryInfo | null;
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   onBack: () => void;
 }) {
   return (
@@ -68,11 +47,7 @@ export function DetailPanel({
       {selection.type === 'object' ? (
         <ObjectDetail object={selection.object} visit={visit} city={city} />
       ) : (
-<<<<<<< HEAD
         <BoundaryDetail feature={selection.feature} />
-=======
-        <BoundaryDetail feature={selection.feature} info={boundaryInfo ?? null} />
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       )}
     </article>
   );
@@ -113,19 +88,6 @@ function ObjectDetail({ object: o, visit, city }: { object: CivicObject; visit: 
         </section>
       )}
 
-<<<<<<< HEAD
-=======
-      {o.handledBy && (
-        <section className={styles.allowed} aria-label="Follow-up">
-          <h3>Being handled by a BIA</h3>
-          <p>
-            Status: <strong>{o.status}</strong>.{' '}
-            <Link href={`${workspaceHref('bia', o.handledBy.workspaceId)}&tab=signals`}>See the BIA&apos;s follow-up</Link>
-          </p>
-        </section>
-      )}
-
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       {workspaceLink && (
         <section className={styles.allowed} aria-label="Workspace">
           <h3>Managed in a workspace</h3>
@@ -164,11 +126,7 @@ function ObjectDetail({ object: o, visit, city }: { object: CivicObject; visit: 
   );
 }
 
-<<<<<<< HEAD
 function BoundaryDetail({ feature }: { feature: BoundaryFeature }) {
-=======
-function BoundaryDetail({ feature, info }: { feature: BoundaryFeature; info: BoundaryInfo | null }) {
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   const p = feature.properties;
   return (
     <>
@@ -178,22 +136,6 @@ function BoundaryDetail({ feature, info }: { feature: BoundaryFeature; info: Bou
         <span className={styles.badge}>{AUTHORITY_LABEL[p.authority]}</span>
       </p>
       <p>{p.description}</p>
-<<<<<<< HEAD
-=======
-      {info && (
-        <section className={styles.allowed} aria-label="Businesses inside this area">
-          <h3>
-            {info.businesses.length} {info.businesses.length === 1 ? 'business' : 'businesses'} inside this outline
-          </h3>
-          {info.businesses.length > 0 && <p>{info.businesses.map((b) => b.title).join(', ')}</p>}
-          {info.biaWorkspaceId && (
-            <p>
-              <Link href={`${workspaceHref('bia', info.biaWorkspaceId)}&tab=listings`}>Open this BIA&apos;s directory</Link>
-            </p>
-          )}
-        </section>
-      )}
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       <section className={styles.restricted} aria-label="Trust note">
         <h3>Don&apos;t rely on this outline</h3>
         <p>

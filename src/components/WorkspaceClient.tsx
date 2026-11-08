@@ -1,29 +1,36 @@
 'use client';
 
-<<<<<<< HEAD
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { StateBoundary } from './StateBoundary';
-import { WorkspaceShell, type WorkspaceTab } from './WorkspaceShell';
+import { RolesPanel } from './RolesPanel';
+import { WorkspaceShell } from './WorkspaceShell';
+import { RequestQueue } from './RequestQueue';
+import { GovDashboard } from './gov/GovDashboard';
+import { CasesPanel } from './gov/CasesPanel';
+import { CommsPanel } from './gov/CommsPanel';
+import { PublicView } from './gov/PublicView';
+import { AuditPanel } from './gov/AuditPanel';
+import { CaseTasks } from './gov/CaseTasks';
+import type { GovActor } from '@/lib/governance';
 import { createMockServices } from '@/services/mock';
-=======
-import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { StateBoundary } from './StateBoundary';
-import { WorkspaceShell, WORKSPACE_TABS, type WorkspaceTab } from './WorkspaceShell';
-import { resetSessionServices } from '@/services/session';
-import { useServices } from '@/services/use-services';
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+import type { HandlerActor } from '@/services/ports';
 import { mapHref, workspaceHrefForObject } from '@/lib/workspace';
+import { KIND_CONFIG, usesPrograms, type WorkspaceTab } from '@/lib/workspace-config';
+import { PERMISSION_ACTIONS, decide, type ActorContext, type PermissionAction, type PermissionDecision } from '@/lib/permissions';
+import { pointInPolygon } from '@/lib/geo';
 import type {
+  BoundaryFeature,
   CivicObject,
+  CivicRequest,
+  MemberRole,
   TaskStatus,
   Workspace,
   WorkspaceKind,
   WorkspaceMember,
   WorkspaceOffer,
+  WorkspaceProgram,
   WorkspaceTask,
 } from '@/lib/schemas';
 
@@ -32,42 +39,44 @@ const NEXT_TASK_LABEL: Record<Exclude<TaskStatus, 'done'>, string> = {
   'in-progress': 'Mark done',
 };
 
+const ROLE_IDS: MemberRole[] = ['owner', 'staff', 'member'];
+
 /**
- * M05 tenant workspace, shared by /bia and /business. One component, one
- * service port, six views: overview dashboard, members, listings (with
- * claim), offers (draft -> publish, gated on verification), events and the
- * work queue. Every listing and event links back to its pin on the shared
- * map; the map detail panel links back here for owned records.
+ * Tenant workspace, shared by /bia, /business (M05) and /institution,
+ * /organization (M06). One component, one service port, one shell. Which
+ * tabs, wording and role names appear comes from `KIND_CONFIG`; which
+ * actions are allowed comes from the shared `decide` rule, which the port
+ * also enforces. A route may serve several kinds (`/institution` serves
+ * institutions and schools): pass `kinds`, or just `kind` for one.
  */
-export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
+export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: WorkspaceKind[] }) {
   const searchParams = useSearchParams();
   const requestedId = searchParams.get('ws');
-<<<<<<< HEAD
+  const servedKey = (kinds ?? [kind]).join(',');
   const services = useMemo(() => createMockServices(), []);
-=======
-  const requestedTab = searchParams.get('tab');
-  const initialTab: WorkspaceTab = WORKSPACE_TABS.some((t) => t.id === requestedTab) ? (requestedTab as WorkspaceTab) : 'overview';
-  const services = useServices();
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [siblings, setSiblings] = useState<Workspace[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [tasks, setTasks] = useState<WorkspaceTask[]>([]);
   const [offers, setOffers] = useState<WorkspaceOffer[]>([]);
+  const [programs, setPrograms] = useState<WorkspaceProgram[]>([]);
+  const [requests, setRequests] = useState<CivicRequest[]>([]);
   const [objects, setObjects] = useState<CivicObject[]>([]);
+  const [area, setArea] = useState<BoundaryFeature | null>(null);
+  const [actorId, setActorId] = useState<string | null>(null);
+  const [programTitle, setProgramTitle] = useState('');
+  const [programSummary, setProgramSummary] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState<MemberRole>('member');
   const [cityName, setCityName] = useState('');
-<<<<<<< HEAD
   const [failed, setFailed] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<WorkspaceTab>('overview');
-=======
-  const [boundaryName, setBoundaryName] = useState('');
-  const [outsideBusinesses, setOutsideBusinesses] = useState(0);
-  const [failed, setFailed] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+  // `?tab=` opens a tab directly (an invalid or unavailable one falls back to the overview below).
+  const [tab, setTab] = useState<WorkspaceTab>(() => (searchParams.get('tab') as WorkspaceTab | null) ?? 'overview');
+  // M07: the case or item a dashboard link opened, and the case a response is being written for.
+  const [openCaseId, setOpenCaseId] = useState<string | null>(null);
+  const [draftCaseId, setDraftCaseId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offerTitle, setOfferTitle] = useState('');
@@ -76,50 +85,43 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
   const load = useCallback(async () => {
     try {
       const all = await services.workspaces.workspaces();
-      const ofKind = all.filter((w) => w.kind === kind);
+      const served = servedKey.split(',');
+      const ofKind = all.filter((w) => served.includes(w.kind));
       const chosen = requestedId ? ofKind.find((w) => w.id === requestedId) ?? null : ofKind[0] ?? null;
       if (!chosen) {
         setNotFound(true);
         return;
       }
-<<<<<<< HEAD
-      const [m, t, o, cities, objs] = await Promise.all([
-=======
-      // A BIA only ever sees what is inside its own boundary. Businesses elsewhere in the city are
-      // counted (so the screen can say what is left out) but never listed.
-      const boundaryId = chosen.kind === 'bia' ? chosen.boundaryId : undefined;
-      const [m, t, o, cities, objs, cityBusinesses, boundary] = await Promise.all([
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+      const [m, t, o, pr, cities, objs, reqs, bounds] = await Promise.all([
         services.workspaces.members(chosen.id),
         services.workspaces.tasks(chosen.id),
         services.workspaces.offers(chosen.id),
+        services.workspaces.programs(chosen.id),
         services.cities.list(),
-<<<<<<< HEAD
         services.objects.list({ cityId: chosen.cityId }),
-=======
-        services.objects.list({ cityId: chosen.cityId, boundaryId }),
-        boundaryId ? services.objects.list({ cityId: chosen.cityId, kinds: ['business'] }) : Promise.resolve([]),
-        boundaryId ? services.boundaries.get(boundaryId) : Promise.resolve(null),
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+        services.requests.list({ workspaceId: chosen.id }),
+        services.boundaries.listForCity(chosen.cityId),
       ]);
       setWorkspace(chosen);
       setSiblings(ofKind);
       setMembers(m);
       setTasks(t);
       setOffers(o);
+      setPrograms(pr);
+      setRequests(reqs);
+      // Default the "view as" person to the first active owner; keep the choice while it still exists.
+      setActorId((prev) =>
+        prev && m.some((x) => x.id === prev)
+          ? prev
+          : (m.find((x) => x.role === 'owner' && x.status === 'active') ?? m[0])?.id ?? null,
+      );
       setCityName(cities.find((c) => c.id === chosen.cityId)?.name ?? chosen.cityId);
       setObjects(objs);
-<<<<<<< HEAD
-=======
-      setBoundaryName(boundary?.properties.name ?? '');
-      setOutsideBusinesses(
-        boundaryId ? cityBusinesses.filter((b) => !objs.some((x) => x.id === b.id)).length : 0,
-      );
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+      setArea(chosen.boundaryId ? (bounds.features.find((f) => f.properties.id === chosen.boundaryId) ?? null) : null);
     } catch {
       setFailed(true);
     }
-  }, [kind, requestedId, services]);
+  }, [servedKey, requestedId, services]);
 
   useEffect(() => {
     let live = true;
@@ -131,19 +133,39 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
     };
   }, [load]);
 
-  const listings = objects.filter((o) => o.kind === 'business' || o.kind === 'place');
+  const kindOfWorkspace: WorkspaceKind = workspace?.kind ?? kind;
+  const config = KIND_CONFIG[kindOfWorkspace];
+  const programKind = usesPrograms(kindOfWorkspace);
+  // A workspace with a boundary (a BIA) works inside it: its directory, events and counts exclude the rest of the city.
+  // If the boundary cannot be found, fail closed (show nothing) instead of showing the whole city.
+  const bounded = workspace?.boundaryId !== undefined;
+  const scoped = bounded
+    ? objects.filter((o) => (area ? pointInPolygon(o.geo.coordinates, area.geometry.coordinates) : false))
+    : objects;
+  const cityListingCount = objects.filter((o) => o.kind === 'business' || o.kind === 'place').length;
+  const listings = scoped.filter((o) => o.kind === 'business' || o.kind === 'place');
   const claimed = workspace ? listings.filter((o) => o.workspaceId === workspace.id) : [];
   const claimable = workspace
     ? objects.filter((o) => o.kind === 'business' && !o.workspaceId)
     : [];
-  const events = objects.filter((o) => o.kind === 'event');
-<<<<<<< HEAD
-=======
-  const signals = objects.filter((o) => o.kind === 'issue');
-  const openSignals = signals.filter((o) => !o.handledBy && o.status !== 'Resolved');
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+  const events = scoped.filter((o) => o.kind === 'event');
   const openTasks = tasks.filter((t) => t.status !== 'done');
+  const openRequests = requests.filter((r) => r.status !== 'declined' && r.status !== 'resolved');
   const publishedOffers = offers.filter((o) => o.status === 'published');
+  const publishedPrograms = programs.filter((p) => p.status === 'published');
+  const draftPrograms = programs.filter((p) => p.status === 'draft');
+
+  // Who the page is shown as. With no members at all, fall back to least privilege.
+  const actor = members.find((m) => m.id === actorId) ?? null;
+  const actorContext: ActorContext = actor
+    ? { role: actor.role, memberStatus: actor.status }
+    : { role: 'member', memberStatus: 'active' };
+  const handlerActor: HandlerActor = { ...actorContext, name: actor?.name ?? 'Demo person' };
+  const governed = config.governed === true;
+  const govActor: GovActor = { ...actorContext, id: actor?.id ?? 'no-member', name: actor?.name ?? 'Demo person', workspaceId: workspace?.id ?? '' };
+  const workspaceName = (id: string | undefined) => siblings.find((w) => w.id === id)?.name ?? 'No department';
+  const can = (action: PermissionAction): PermissionDecision =>
+    workspace ? decide(action, actorContext, workspace.status) : { allowed: false, reason: 'No workspace is loaded.' };
 
   async function act(fn: () => Promise<unknown>, ok: string) {
     setNotice(null);
@@ -158,6 +180,8 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
   }
 
   const state = failed ? 'error' : notFound ? 'error' : workspace === null ? 'loading' : 'success';
+  const activeTab: WorkspaceTab = config.tabs.some((t) => t.id === tab) ? tab : 'overview';
+  const viewBlocked = !can('view').allowed && activeTab !== 'roles';
 
   return (
     <StateBoundary
@@ -176,89 +200,276 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
       }}
     >
       {workspace && (
-        <WorkspaceShell workspace={workspace} siblings={siblings} activeTab={tab} onTabChange={setTab}>
+        <WorkspaceShell
+          workspace={workspace}
+          siblings={siblings}
+          members={members}
+          actorId={actorId}
+          onActorChange={(id) => {
+            setNotice(null);
+            setError(null);
+            setActorId(id);
+          }}
+          activeTab={activeTab}
+          onTabChange={setTab}
+        >
           {notice && <p className="notice" role="status">{notice}</p>}
           {error && <p role="alert" className="muted">{error}</p>}
 
-          {tab === 'overview' && (
+          {viewBlocked && (
+            <StateBoundary
+              state="restricted"
+              restrictedTitle="No access yet"
+              restrictedHelp={`${can('view').reason} Open the Roles & access tab to see why, or switch to another person above.`}
+            />
+          )}
+
+          {!viewBlocked && activeTab === 'overview' && (
             <section aria-label="Dashboard">
               <h2>Dashboard</h2>
-              <div className="pill-row">
-                <span className="pill">{members.length} members</span>
-                <span className="pill">{kind === 'bia' ? listings.length : claimed.length} listings</span>
-<<<<<<< HEAD
-=======
-                {kind === 'bia' && <span className="pill">{openSignals.length} new community signals</span>}
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
-                <span className="pill">{openTasks.length} open tasks</span>
-                <span className="pill">{publishedOffers.length} published offers</span>
-              </div>
-              <p className="muted">
-                {kind === 'bia'
-<<<<<<< HEAD
-                  ? `Corridor directory for ${cityName}: ${listings.length} listings and places, ${events.length} events, and a work queue of ${tasks.length} tasks.`
-                  : `Your claimed listings in ${cityName}: ${claimed.length}. Unclaimed businesses in the same city can be claimed from the Listings tab.`}
-              </p>
-              {kind === 'bia' && <SignalLoop tasks={tasks} onAdvance={(id, status) => act(() => services.workspaces.updateTask(workspace.id, id, status), 'Task updated.')} />}
-=======
-                  ? `Directory for ${boundaryName || cityName}: ${listings.length} businesses and places inside the boundary, ${events.length} events and a work queue of ${tasks.length} tasks. ${outsideBusinesses} ${outsideBusinesses === 1 ? 'business' : 'businesses'} elsewhere in ${cityName} ${outsideBusinesses === 1 ? 'is' : 'are'} outside this boundary and not listed.`
-                  : `Your claimed listings in ${cityName}: ${claimed.length}. Unclaimed businesses in the same city can be claimed from the Listings tab.`}
-              </p>
-              {kind === 'bia' && (
-                <SignalLoop
-                  tasks={tasks}
-                  signals={signals}
-                  onAdvance={(id, status) => act(() => services.workspaces.updateTask(workspace.id, id, status), 'Task updated. The community issue and the reporter\u2019s notifications were updated too.')}
-                  onOpenSignals={() => setTab('signals')}
+              {governed && (
+                <GovDashboard
+                  services={services}
+                  workspace={workspace}
+                  actor={govActor}
+                  departmentName={workspaceName}
+                  onOpen={(t, id) => {
+                    if (t === 'cases') setOpenCaseId(id ?? null);
+                    setTab(t);
+                  }}
                 />
               )}
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+              {!governed && (
+              <>
+              <div className="pill-row">
+                <span className="pill">{members.length} members</span>
+                {programKind ? (
+                  <>
+                    <span className="pill">{publishedPrograms.length} published</span>
+                    <span className="pill">{draftPrograms.length} awaiting publication</span>
+                    <span className="pill">{openTasks.length} open tasks</span>
+                    <span className="pill">{events.length} events in {cityName}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="pill">{kindOfWorkspace === 'bia' ? listings.length : claimed.length} listings</span>
+                    <span className="pill">{openTasks.length} open tasks</span>
+                    <span className="pill">{openRequests.length} open requests</span>
+                    <span className="pill">{publishedOffers.length} published offers</span>
+                  </>
+                )}
+              </div>
+              <p className="muted">
+                {programKind
+                  ? `${workspace.name} in ${cityName}: ${publishedPrograms.length} published ${config.programs?.noun ?? 'program'}${publishedPrograms.length === 1 ? '' : 's'}, ${draftPrograms.length} draft${draftPrograms.length === 1 ? '' : 's'} awaiting publication, and a work queue of ${tasks.length} tasks.`
+                  : kindOfWorkspace === 'bia'
+                    ? `Corridor directory: ${listings.length} of the ${cityListingCount} listings and places in ${cityName} are inside ${area?.properties.name ?? 'this corridor'}, with ${events.length} event${events.length === 1 ? '' : 's'} there and a work queue of ${tasks.length} tasks. Businesses outside the boundary are not listed.`
+                    : `Your claimed listings in ${cityName}: ${claimed.length}. Unclaimed businesses in the same city can be claimed from the Listings tab.`}
+              </p>
+              </>
+              )}
+              <section aria-label="Your access" className="card">
+                <h3 style={{ marginTop: 0 }}>Your access</h3>
+                <p className="muted" style={{ margin: 0 }}>
+                  {actor ? `${actor.name} (${config.roleLabels[actor.role]}${actor.status === 'invited' ? ', invitation not accepted' : ''}): ` : ''}
+                  {PERMISSION_ACTIONS.map((a) => `${a.label} ${can(a.id).allowed ? '✓' : '✕'}`).join(' · ')}
+                </p>
+              </section>
+              {config.safeguards.map((sg) => (
+                <p className="notice" key={sg}>{sg}</p>
+              ))}
+              {programKind && draftPrograms.length > 0 && (
+                <>
+                  <h3>Awaiting publication</h3>
+                  {draftPrograms.map((p) => (
+                    <ProgramCard
+                      key={p.id}
+                      program={p}
+                      publish={can('publish')}
+                      onPublish={() => act(() => services.workspaces.publishProgram(p.id, actorContext), 'Published.')}
+                    />
+                  ))}
+                </>
+              )}
+              {kindOfWorkspace === 'bia' && <SignalLoop tasks={tasks} onAdvance={(id, status) => act(() => services.workspaces.updateTask(workspace.id, id, status, actorContext), 'Task updated.')} canWork={can('work')} />}
               <div className="btn-row">
                 <Link className="btn secondary" href="/map">Open the map</Link>
-                <Link className="btn secondary" href="/businesses">Business directory</Link>
+                {!governed && <Link className="btn secondary" href="/businesses">Business directory</Link>}
               </div>
             </section>
           )}
 
-          {tab === 'members' && (
+          {!viewBlocked && governed && activeTab === 'cases' && (
+            <CasesPanel
+              key={`${workspace.id}:${openCaseId ?? ''}`}
+              services={services}
+              workspace={workspace}
+              actor={govActor}
+              allWorkspaces={siblings}
+              initialCaseId={openCaseId}
+              onDraftResponse={(id) => {
+                setDraftCaseId(id);
+                setTab('communications');
+              }}
+            />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'communications' && (
+            <CommsPanel key={`${workspace.id}:${draftCaseId ?? ''}`} services={services} workspace={workspace} actor={govActor} initialCaseId={draftCaseId} />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'public' && (
+            <PublicView services={services} workspace={workspace} departmentName={workspaceName} />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'audit' && <AuditPanel services={services} workspace={workspace} />}
+
+          {!viewBlocked && activeTab === 'members' && (
             <section aria-label="Members">
-              <h2>Members</h2>
+              <h2>{config.tabs.find((t) => t.id === 'members')?.label ?? 'Members'}</h2>
               <p className="muted">
-                Who can do what in this workspace: owners manage members, tasks and offers; staff work on tasks
-                and offers; members view. Role checks are display-only in this shell — a production workspace
-                service enforces them. Names below are demo names, not real people.
+                Who can do what in this workspace: owners manage members, tasks and publishing; staff work on tasks
+                and publish; members view. The workspace service applies these rules (see Roles &amp; access).
+                Names below are demo names, not real people.
               </p>
               {members.map((m) => (
                 <article className="card" key={m.id}>
                   <h3 style={{ margin: '0 0 4px' }}>{m.name}</h3>
                   <p className="muted" style={{ margin: 0 }}>
-                    {m.role} · {m.status === 'active' ? 'Active' : 'Invited, not yet active'}
+                    {config.roleLabels[m.role]} · {m.status === 'active' ? 'Active' : 'Invited, not yet active'}
                   </p>
+                  <div className="btn-row" style={{ margin: '8px 0 0' }}>
+                    <label>
+                      <span className="muted">Role: </span>
+                      <select
+                        aria-label={`Role for ${m.name}`}
+                        value={m.role}
+                        disabled={!can('manage').allowed}
+                        onChange={(e) =>
+                          void act(
+                            () => services.workspaces.changeMemberRole(m.id, e.target.value as MemberRole, actorContext),
+                            'Role changed.',
+                          )
+                        }
+                        style={{ padding: 6, borderRadius: 8, border: '1px solid var(--line)' }}
+                      >
+                        {ROLE_IDS.map((r) => (
+                          <option key={r} value={r}>{config.roleLabels[r]}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {m.status === 'invited' && (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => act(() => services.workspaces.acceptInvite(m.id), 'Invitation accepted (demo).')}
+                      >
+                        Accept invitation as this person (demo)
+                      </button>
+                    )}
+                  </div>
                 </article>
               ))}
+              <Reason decision={can('manage')} />
+              <h3>Invite someone</h3>
+              <div style={{ display: 'grid', gap: 8, maxWidth: '70ch' }}>
+                <input
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Demo name (no real people)"
+                  aria-label="Name to invite"
+                  style={{ padding: 8, borderRadius: 8, border: '1px solid var(--line)' }}
+                />
+                <label>
+                  <span className="muted">Role: </span>
+                  <select
+                    aria-label="Role to invite as"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as MemberRole)}
+                    style={{ padding: 6, borderRadius: 8, border: '1px solid var(--line)' }}
+                  >
+                    {ROLE_IDS.map((r) => (
+                      <option key={r} value={r}>{config.roleLabels[r]}</option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!can('manage').allowed}
+                  onClick={() => {
+                    void act(
+                      () => services.workspaces.inviteMember({ workspaceId: workspace.id, name: inviteName, role: inviteRole }, actorContext),
+                      'Invitation created. The person has no access until they accept.',
+                    );
+                    setInviteName('');
+                  }}
+                >
+                  Send invitation
+                </button>
+              </div>
             </section>
           )}
 
-          {tab === 'listings' && (
+          {!viewBlocked && activeTab === 'programs' && programKind && (
+            <section aria-label={config.programs?.heading ?? 'Programs'}>
+              <h2>{config.programs?.heading ?? 'Programs'}</h2>
+              <p className="muted">{config.programs?.help}</p>
+              {programs.map((p) => (
+                <ProgramCard
+                  key={p.id}
+                  program={p}
+                  publish={can('publish')}
+                  onPublish={() => act(() => services.workspaces.publishProgram(p.id, actorContext), 'Published.')}
+                />
+              ))}
+              {programs.length === 0 && <p className="muted">Nothing here yet. Create a draft below.</p>}
+              <h3>Create a draft</h3>
+              <div style={{ display: 'grid', gap: 8, maxWidth: '70ch' }}>
+                <input
+                  value={programTitle}
+                  onChange={(e) => setProgramTitle(e.target.value)}
+                  placeholder={`Title of the ${config.programs?.noun ?? 'program'}`}
+                  aria-label="Program title"
+                  style={{ padding: 8, borderRadius: 8, border: '1px solid var(--line)' }}
+                />
+                <input
+                  value={programSummary}
+                  onChange={(e) => setProgramSummary(e.target.value)}
+                  placeholder="Short description (optional)"
+                  aria-label="Program description"
+                  style={{ padding: 8, borderRadius: 8, border: '1px solid var(--line)' }}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!can('work').allowed}
+                  onClick={() => {
+                    void act(
+                      () => services.workspaces.createProgram({ workspaceId: workspace.id, title: programTitle, summary: programSummary }, actorContext),
+                      'Draft created. It stays inside the workspace until published.',
+                    );
+                    setProgramTitle('');
+                    setProgramSummary('');
+                  }}
+                >
+                  Create draft
+                </button>
+                <Reason decision={can('work')} />
+              </div>
+            </section>
+          )}
+
+          {!viewBlocked && activeTab === 'listings' && (
             <section aria-label="Listings">
-              <h2>{kind === 'bia' ? 'Corridor listings' : 'Your listings'}</h2>
-<<<<<<< HEAD
-=======
-              {kind === 'bia' && (
-                <p className="muted">
-                  Only businesses and places inside {boundaryName || 'this BIA\u2019s boundary'} are listed:{' '}
-                  {listings.length} shown, {outsideBusinesses} {outsideBusinesses === 1 ? 'business' : 'businesses'} elsewhere in{' '}
-                  {cityName} left out.
-                </p>
-              )}
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
-              {(kind === 'bia' ? listings : claimed).map((o) => (
+              <h2>{kindOfWorkspace === 'bia' ? 'Corridor listings' : 'Your listings'}</h2>
+              {(kindOfWorkspace === 'bia' ? listings : claimed).map((o) => (
                 <ListingCard key={o.id} object={o} />
               ))}
-              {(kind === 'bia' ? listings : claimed).length === 0 && (
+              {(kindOfWorkspace === 'bia' ? listings : claimed).length === 0 && (
                 <p className="muted">No listings yet. Claim one below.</p>
               )}
-              {kind === 'business' && claimable.length > 0 && (
+              {kindOfWorkspace === 'business' && claimable.length > 0 && (
                 <>
                   <h3>Claim a listing</h3>
                   <p className="muted">
@@ -273,7 +484,8 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                         <button
                           type="button"
                           className="btn secondary"
-                          onClick={() => act(() => services.workspaces.claimListing(workspace.id, o.id), 'Listing claimed into this workspace.')}
+                          disabled={!can('work').allowed}
+                          onClick={() => act(() => services.workspaces.claimListing(workspace.id, o.id, actorContext), 'Listing claimed into this workspace.')}
                         >
                           Claim this listing
                         </button>
@@ -281,12 +493,13 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                       </div>
                     </article>
                   ))}
+                  <Reason decision={can('work')} />
                 </>
               )}
             </section>
           )}
 
-          {tab === 'offers' && (
+          {!viewBlocked && activeTab === 'offers' && (
             <section aria-label="Offers">
               <h2>Offers</h2>
               <p className="muted">
@@ -303,14 +516,15 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                       <button
                         type="button"
                         className="btn secondary"
-                        disabled={workspace.status !== 'verified'}
-                        onClick={() => act(() => services.workspaces.publishOffer(o.id), 'Offer published.')}
+                        disabled={!can('publish').allowed}
+                        onClick={() => act(() => services.workspaces.publishOffer(o.id, actorContext), 'Offer published.')}
                       >
                         Publish offer
                       </button>
                     )}
                     <Link className="btn secondary" href={mapHref(o.businessId)}>📍 View business on map</Link>
                   </div>
+                  {o.status === 'draft' && <Reason decision={can('publish')} />}
                 </article>
               ))}
               <h3>Create a draft offer</h3>
@@ -332,12 +546,12 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                 <button
                   type="button"
                   className="btn"
-                  disabled={claimed.length === 0 && listings.filter((o) => o.kind === 'business').length === 0}
+                  disabled={!can('work').allowed || (claimed.length === 0 && listings.filter((o) => o.kind === 'business').length === 0)}
                   onClick={() => {
                     const businessId = (claimed[0] ?? listings.find((o) => o.kind === 'business'))?.id;
                     if (!businessId) return;
                     void act(
-                      () => services.workspaces.createOffer({ workspaceId: workspace.id, businessId, title: offerTitle, summary: offerSummary }),
+                      () => services.workspaces.createOffer({ workspaceId: workspace.id, businessId, title: offerTitle, summary: offerSummary }, actorContext),
                       'Draft offer created.',
                     );
                     setOfferTitle('');
@@ -346,17 +560,14 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                 >
                   Create draft
                 </button>
+                <Reason decision={can('work')} />
               </div>
             </section>
           )}
 
-          {tab === 'events' && (
+          {!viewBlocked && activeTab === 'events' && (
             <section aria-label="Events">
-<<<<<<< HEAD
               <h2>Events in {cityName}</h2>
-=======
-              <h2>Events in {kind === 'bia' ? boundaryName || cityName : cityName}</h2>
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
               <p className="muted">Events the workspace can promote or staff. Each one links to its map pin.</p>
               {events.map((o) => (
                 <article className="card" key={o.id}>
@@ -369,81 +580,34 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
             </section>
           )}
 
-<<<<<<< HEAD
-=======
-          {tab === 'signals' && kind === 'bia' && (
-            <section aria-label="Community signals">
-              <h2>Community signals</h2>
-              <p className="muted">
-                Issues reported by neighbours inside {boundaryName || 'this BIA\u2019s boundary'}. Taking one on creates a task in
-                the work queue, tells the reporter, and carries every later step back to the issue on the map. Issues
-                outside the boundary never appear here.
-              </p>
-              {signals.map((o) => {
-                const task = tasks.find((t) => t.id === o.handledBy?.taskId);
-                return (
-                  <article className="card" key={o.id} aria-label={`Signal: ${o.title}`}>
-                    <h3 style={{ margin: '0 0 4px' }}>{o.title}</h3>
-                    <p className="muted" style={{ margin: '0 0 8px' }}>{o.summary} · {o.status}</p>
-                    {task && <p className="muted" style={{ margin: '0 0 8px' }}>BIA task: “{task.title}” — {task.status}</p>}
-                    <div className="btn-row">
-                      {!o.handledBy && o.status !== 'Resolved' && (
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={() => act(() => services.workspaces.raiseTaskFromIssue(workspace.id, o.id), 'Issue taken on as a task. The reporter was notified.')}
-                        >
-                          Take on as a task
-                        </button>
-                      )}
-                      {task && task.status !== 'done' && (
-                        <button
-                          type="button"
-                          className="btn secondary"
-                          onClick={() =>
-                            act(() => services.workspaces.updateTask(workspace.id, task.id, task.status === 'open' ? 'in-progress' : 'done'), 'Task updated. The issue on the map was updated too.')
-                          }
-                        >
-                          {NEXT_TASK_LABEL[task.status]}
-                        </button>
-                      )}
-                      <Link className="btn secondary" href={mapHref(o.id)}>📍 View on map</Link>
-                    </div>
-                  </article>
-                );
-              })}
-              {signals.length === 0 && <p className="muted">No community issues inside this boundary right now.</p>}
-            </section>
+          {!viewBlocked && activeTab === 'requests' && (
+            <RequestQueue
+              requests={requests}
+              workspace={workspace}
+              roleLabels={config.roleLabels}
+              members={members}
+              actor={handlerActor}
+              services={services}
+              onChanged={load}
+            />
           )}
 
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
-          {tab === 'tasks' && (
+          {!viewBlocked && activeTab === 'tasks' && (
             <section aria-label="Tasks">
               <h2>Work queue</h2>
               <p className="muted">Tasks move one step forward only: open → in progress → done. Done tasks cannot move back.</p>
               {tasks.map((t) => (
                 <article className="card" key={t.id}>
                   <h3 style={{ margin: '0 0 4px' }}>{t.title}</h3>
-<<<<<<< HEAD
                   <p className="muted" style={{ margin: '0 0 8px' }}>{t.kind} · {t.status}</p>
-=======
-                  <p className="muted" style={{ margin: '0 0 8px' }}>
-                    {t.kind} · {t.status}
-                    {t.sourceObjectId && (
-                      <>
-                        {' · '}
-                        <Link href={mapHref(t.sourceObjectId)}>raised from a community issue</Link>
-                      </>
-                    )}
-                  </p>
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
                   {t.status !== 'done' && (
                     <button
                       type="button"
                       className="btn secondary"
+                      disabled={!can('work').allowed}
                       onClick={() =>
                         act(
-                          () => services.workspaces.updateTask(workspace.id, t.id, t.status === 'open' ? 'in-progress' : 'done'),
+                          () => services.workspaces.updateTask(workspace.id, t.id, t.status === 'open' ? 'in-progress' : 'done', actorContext),
                           'Task updated.',
                         )
                       }
@@ -453,11 +617,61 @@ export function WorkspaceClient({ kind }: { kind: WorkspaceKind }) {
                   )}
                 </article>
               ))}
+              <Reason decision={can('work')} />
+              {governed && (
+                <CaseTasks
+                  services={services}
+                  workspace={workspace}
+                  onOpen={(id) => {
+                    setOpenCaseId(id);
+                    setTab('cases');
+                  }}
+                />
+              )}
             </section>
+          )}
+
+          {activeTab === 'roles' && (
+            <RolesPanel workspace={workspace} actor={actor} actorContext={actorContext} />
           )}
         </WorkspaceShell>
       )}
     </StateBoundary>
+  );
+}
+
+/** Shows why a control is unavailable, in words (the disabled button alone says nothing). */
+function Reason({ decision }: { decision: PermissionDecision }) {
+  if (decision.allowed) return null;
+  return <p className="muted" role="note">Not available for this person: {decision.reason}</p>;
+}
+
+function ProgramCard({
+  program,
+  publish,
+  onPublish,
+}: {
+  program: WorkspaceProgram;
+  publish: PermissionDecision;
+  onPublish: () => void;
+}) {
+  return (
+    <article className="card">
+      <h3 style={{ margin: '0 0 4px' }}>{program.title}</h3>
+      <p className="muted" style={{ margin: '0 0 8px' }}>{program.summary}</p>
+      <p className="muted" style={{ margin: '0 0 8px' }}>
+        Status: {program.status === 'published' ? 'published (public)' : 'draft (workspace only)'}
+      </p>
+      <div className="btn-row">
+        {program.status === 'draft' && (
+          <button type="button" className="btn secondary" disabled={!publish.allowed} onClick={onPublish}>
+            Publish
+          </button>
+        )}
+        {program.objectId && <Link className="btn secondary" href={mapHref(program.objectId)}>📍 View on map</Link>}
+      </div>
+      {program.status === 'draft' && <Reason decision={publish} />}
+    </article>
   );
 }
 
@@ -477,12 +691,19 @@ function ListingCard({ object }: { object: CivicObject }) {
 }
 
 /**
-<<<<<<< HEAD
  * Bounded BIA–Business–community signal loop (M05 WP4), traced, not invented:
  * community issue -> BIA work-queue task -> published demo outcome. The outcome
  * card appears only once the task is actually marked done in this session.
  */
-function SignalLoop({ tasks, onAdvance }: { tasks: WorkspaceTask[]; onAdvance: (id: string, status: TaskStatus) => void }) {
+function SignalLoop({
+  tasks,
+  onAdvance,
+  canWork,
+}: {
+  tasks: WorkspaceTask[];
+  onAdvance: (id: string, status: TaskStatus) => void;
+  canWork: PermissionDecision;
+}) {
   const task = tasks.find((t) => t.id === 't-bia-works');
   if (!task) return null;
   return (
@@ -505,85 +726,13 @@ function SignalLoop({ tasks, onAdvance }: { tasks: WorkspaceTask[]; onAdvance: (
         <button
           type="button"
           className="btn secondary"
+          disabled={!canWork.allowed}
           onClick={() => onAdvance(task.id, task.status === 'open' ? 'in-progress' : 'done')}
         >
           {NEXT_TASK_LABEL[task.status]}
         </button>
       )}
-=======
- * The signal loop (M05 WP4), now driven by real state: community issue -> BIA task -> outcome.
- * Each row reads the live issue and task, so whatever happened on another screen (a new
- * report, a task moved forward) shows here, and what happens here shows on the map, in the
- * reporter's notifications and in the Pulse feed.
- */
-function SignalLoop({
-  tasks,
-  signals,
-  onAdvance,
-  onOpenSignals,
-}: {
-  tasks: WorkspaceTask[];
-  signals: CivicObject[];
-  onAdvance: (id: string, status: TaskStatus) => void;
-  onOpenSignals: () => void;
-}) {
-  const linked = tasks
-    .map((task) => ({ task, issue: signals.find((s) => s.id === task.sourceObjectId) }))
-    .filter((x): x is { task: WorkspaceTask; issue: CivicObject } => x.issue !== undefined);
-  const waiting = signals.filter((s) => !s.handledBy && s.status !== 'Resolved');
-  return (
-    <section aria-label="Signal loop" className="card">
-      <h3 style={{ marginTop: 0 }}>Signal loop: community → BIA → outcome</h3>
-      {waiting.length > 0 && (
-        <p>
-          <strong>{waiting.length}</strong> new community {waiting.length === 1 ? 'signal is' : 'signals are'} waiting:{' '}
-          {waiting.map((w) => w.title).join('; ')}.{' '}
-          <button type="button" className="pill" onClick={onOpenSignals}>Review community signals</button>
-        </p>
-      )}
-      {linked.length === 0 && <p className="muted">No community issue has been taken on yet.</p>}
-      {linked.map(({ task, issue }) => (
-        <div key={task.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-          <ol>
-            <li>
-              Community signal: <Link href={mapHref(issue.id)}>{issue.title}</Link> — now “{issue.status}”.
-            </li>
-            <li>BIA action: “{task.title}” — {task.status}.</li>
-            <li>
-              {issue.outcome ? (
-                <>
-                  Outcome published: {issue.outcome.summary} <Link href={mapHref(issue.id)}>See it on the map</Link>.
-                </>
-              ) : (
-                'Outcome: nothing published yet. Move the task to done and the outcome appears on the issue.'
-              )}
-            </li>
-          </ol>
-          {task.status !== 'done' && (
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={() => onAdvance(task.id, task.status === 'open' ? 'in-progress' : 'done')}
-            >
-              {NEXT_TASK_LABEL[task.status]}
-            </button>
-          )}
-        </div>
-      ))}
-      <p className="muted" style={{ marginBottom: 0 }}>
-        Demo session data lasts for this browser tab.{' '}
-        <button
-          type="button"
-          className="pill"
-          onClick={() => {
-            resetSessionServices();
-            window.location.reload();
-          }}
-        >
-          Reset demo data
-        </button>
-      </p>
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+      <Reason decision={canWork} />
     </section>
   );
 }

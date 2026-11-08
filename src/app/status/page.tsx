@@ -16,8 +16,8 @@ export default function StatusPage() {
         <h1>Build status</h1>
         <p>
           {ROUTES.length} required routes exist. {counts.built} built, {counts.partial} partly built and {counts.stub} planned
-          stubs. Milestones M01–M05 merged into this codebase; M02 was built
-          as a backfill and M05 is the latest milestone.
+          stubs. Milestones M01–M07 are in this codebase; M02 was built
+          as a backfill and M07 (public office and government department workspaces) is the latest milestone.
         </p>
         <table className="matrix">
           <caption className="sr-only">Route coverage</caption>

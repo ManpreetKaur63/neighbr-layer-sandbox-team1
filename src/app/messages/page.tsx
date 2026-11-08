@@ -1,8 +1,13 @@
 import type { Metadata } from 'next';
-import { RouteStub } from '@/components/RouteStub';
+import { Suspense } from 'react';
+import { MessagesClient } from './MessagesClient';
 
-export const metadata: Metadata = { title: "Messages \u00b7 Neighbr" };
+export const metadata: Metadata = { title: 'Messages · Neighbr' };
 
 export default function Page() {
-  return <RouteStub path="/messages" />;
+  return (
+    <Suspense>
+      <MessagesClient />
+    </Suspense>
+  );
 }

@@ -1,5 +1,16 @@
-.header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 1.25rem; background: var(--forest); color: #fff; }
-.brand { font-weight: 800; font-size: 1.4rem; letter-spacing: -0.03em; color: #fff; text-decoration: none; }
-.header nav { display: flex; gap: 0.25rem; }
-.header nav a { color: #fff; text-decoration: none; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; padding: 0 0.8rem; border-radius: 999px; }
-.header nav a:hover { background: var(--forest-2); }
+.header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.6rem 1.25rem; background: var(--forest); color: #fff; }
+.brand { font-weight: 800; font-size: 1.4rem; letter-spacing: -0.03em; color: #fff; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.menuButton { display: none; min-height: 44px; padding: 0 1rem; border-radius: 999px; border: 2px solid #fff; background: transparent; color: #fff; font-weight: 700; cursor: pointer; }
+.nav { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.nav a { color: #fff; text-decoration: none; font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; padding: 0 0.8rem; border-radius: 999px; }
+.nav a:hover { background: var(--forest-2); }
+.nav a[aria-current='page'] { background: var(--forest-2); box-shadow: inset 0 -3px 0 var(--lime); }
+
+/* Phone and small tablet: links fold into a Menu button. */
+@media (max-width: 899px) {
+  .header { padding: 0.35rem 1rem; }
+  .menuButton { display: inline-flex; align-items: center; }
+  .nav { display: none; flex-basis: 100%; flex-direction: column; gap: 0; padding: 0.25rem 0 0.5rem; border-top: 1px solid var(--forest-2); }
+  .nav[data-open='true'] { display: flex; }
+  .nav a { min-height: 48px; border-radius: var(--radius-sm); padding: 0 0.6rem; }
+}

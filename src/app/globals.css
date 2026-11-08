@@ -103,3 +103,27 @@ table.matrix th { background: var(--paper-2); }
 .badge.ok { border-color: var(--ok); color: var(--ok); }
 .muted { color: var(--ink-soft); }
 .lede { font-size: 1.125rem; max-width: 62ch; }
+
+/* ---------- M07: tenant shell on small screens ---------- */
+.switcher { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
+.switcher ul { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.switcher .pill { min-height: 44px; text-align: left; }
+.viewAs { margin: 0.5rem 0; }
+.viewAs label { display: grid; gap: 0.25rem; }
+.viewAsSelect { width: 100%; max-width: 32rem; min-height: 44px; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: #fff; font-size: 1rem; }
+.tabs { display: flex; gap: 0.4rem; margin: 1rem 0; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 0.4rem; -webkit-overflow-scrolling: touch; }
+.tabs .pill { flex: 0 0 auto; min-height: 44px; scroll-snap-align: center; white-space: nowrap; }
+
+@media (max-width: 899px) {
+  .page { padding: 1rem 1rem 3rem; }
+  .page p { max-width: none; }
+  .card { max-width: none; padding: 0.9rem; margin: 0.75rem 0; box-shadow: none; }
+  .btn { min-height: 48px; }
+  .notice { max-width: none; }
+  /* Tables of rules scroll inside their own box, never the whole page. */
+  table.matrix { display: block; overflow-x: auto; }
+  input, select, textarea { font-size: 1rem; }
+}
+@media (max-width: 559px) {
+  .btn-row > .btn { flex: 1 1 100%; }
+}

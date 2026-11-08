@@ -12,6 +12,7 @@ import {
   userContextSchema,
   workspaceMemberSchema,
   workspaceOfferSchema,
+  workspaceProgramSchema,
   workspaceSchema,
   workspaceTaskSchema,
   type BoundaryCollection,
@@ -22,16 +23,16 @@ import {
   type TaskStatus,
   type Workspace,
   type WorkspaceMember,
+  type MemberRole,
   type WorkspaceOffer,
+  type WorkspaceProgram,
   type WorkspaceTask,
 } from '@/lib/schemas';
+import { decide, denialMessage, type ActorContext, type PermissionAction } from '@/lib/permissions';
 import { filterObjects } from '@/lib/query';
-<<<<<<< HEAD
-=======
-import { pointInRing } from '@/lib/geo';
-import type { LngLat } from '@/lib/schemas';
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 import type { Services, SocialPort, WorkspacePort } from '../ports';
+import { appRequestStore, createRequestPort, requestNotifications, type RequestStore } from './requests';
+import { appGovStore, createGovernancePort, type GovStore } from './governance';
 
 export interface MockOptions {
   /** Artificial delay so loading states are visible and testable. */
@@ -40,15 +41,13 @@ export interface MockOptions {
   failObjects?: boolean;
   /** Return no objects, to demonstrate the empty state. */
   emptyObjects?: boolean;
-<<<<<<< HEAD
-=======
   /**
-   * sessionStorage key. When set, every write is saved and the state is restored
-   * when the services are created again (e.g. after a full page load), so a demo
-   * journey carries across screens. Unset (the default) keeps instances isolated.
+   * M06: where the request journey keeps its state. Defaults to the store the running app shares
+   * between pages; tests pass `createRequestStore()` so nothing leaks between them.
    */
-  persistKey?: string;
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+  requestStore?: RequestStore;
+  /** M07: where cases, communications and the audit record live. Same idea as `requestStore`. */
+  governanceStore?: GovStore;
 }
 
 /** Fixtures are validated against the shared contracts the moment the module loads. */
@@ -102,11 +101,7 @@ const SEED_NOTIFICATIONS: NotificationItem[] = [
 const SEED_WORKSPACES: Workspace[] = [
   workspaceSchema.parse({
     id: 'ws-bia-sample', kind: 'bia', name: 'Sample Olde Riverside BIA', cityId: 'windsor',
-    status: 'verified', summary: 'Corridor workspace for the Olde Riverside business area.',
-<<<<<<< HEAD
-=======
-    boundaryId: 'olde-riverside-corridor',
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+    status: 'verified', summary: 'Corridor workspace for the Olde Riverside business area.', boundaryId: 'olde-riverside-corridor',
     synthetic: true,
   }),
   workspaceSchema.parse({
@@ -119,6 +114,63 @@ const SEED_WORKSPACES: Workspace[] = [
     status: 'onboarding', summary: 'Business workspace still completing onboarding and verification.',
     synthetic: true,
   }),
+  // M06: institution, school and community organization tenants (same shell, new kinds).
+  workspaceSchema.parse({
+    id: 'ws-inst-library', kind: 'institution', name: 'Sample Riverside Public Library', cityId: 'windsor',
+    status: 'verified', summary: 'Institution workspace for a public library branch: services, programs and events.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-school-elementary', kind: 'school', name: 'Sample Riverside Elementary School', cityId: 'windsor',
+    status: 'verified', summary: 'Education workspace for an elementary school: family programs and notices.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-school-academy', kind: 'school', name: 'Sample Riverside Language Academy', cityId: 'windsor',
+    status: 'restricted', summary: 'Education workspace under review: read-only until the review closes.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-org-neighbours', kind: 'organization', name: 'Sample Riverside Neighbours Association', cityId: 'windsor',
+    status: 'verified', summary: 'Community organization workspace for neighbourhood initiatives and volunteers.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-org-trail', kind: 'organization', name: 'Sample Friends of the Trail', cityId: 'windsor',
+    status: 'onboarding', summary: 'Community organization workspace still completing onboarding and verification.',
+    synthetic: true,
+  }),
+  // M07: public offices and government departments (same shell, two more kinds). Ids match the map fixture `w-ward`.
+  workspaceSchema.parse({
+    id: 'ws-ward-sample', kind: 'office', name: 'Sample Ward 4 Councillor\'s Office', cityId: 'windsor',
+    status: 'verified', summary: 'Public office workspace: receives resident cases, routes them to departments and publishes approved notices.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-office-deputy', kind: 'office', name: 'Sample Deputy Mayor\'s Office', cityId: 'windsor',
+    status: 'onboarding', summary: 'Public office workspace still completing onboarding and verification.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-dept-works', kind: 'department', name: 'Sample Public Works Department', cityId: 'windsor',
+    status: 'verified', summary: 'Government department workspace: roads, sidewalks, streetlights and drainage cases.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-dept-parks', kind: 'department', name: 'Sample Parks & Recreation Department', cityId: 'windsor',
+    status: 'verified', summary: 'Government department workspace: parks, trails, benches and programs.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-dept-licensing', kind: 'department', name: 'Sample Licensing & Permits Department', cityId: 'windsor',
+    status: 'restricted', summary: 'Government department workspace under review: read-only, and it cannot take new cases.',
+    synthetic: true,
+  }),
+  workspaceSchema.parse({
+    id: 'ws-dept-transit', kind: 'department', name: 'Sample Transit Services Department', cityId: 'windsor',
+    status: 'onboarding', summary: 'Government department workspace still onboarding: it cannot take cases until verified.',
+    synthetic: true,
+  }),
 ];
 
 const SEED_MEMBERS: WorkspaceMember[] = [
@@ -129,25 +181,90 @@ const SEED_MEMBERS: WorkspaceMember[] = [
   workspaceMemberSchema.parse({ id: 'm-bak-2', workspaceId: 'ws-biz-bakery', name: 'Demo bakery staff', role: 'staff', status: 'active', synthetic: true }),
   workspaceMemberSchema.parse({ id: 'm-hw-1', workspaceId: 'ws-biz-hardware', name: 'Demo hardware owner', role: 'owner', status: 'active', synthetic: true }),
   workspaceMemberSchema.parse({ id: 'm-hw-2', workspaceId: 'ws-biz-hardware', name: 'Demo hardware staff', role: 'staff', status: 'invited', synthetic: true }),
+  // M06 members. Every tenant includes at least one invited person so the "no access yet" state is visible.
+  workspaceMemberSchema.parse({ id: 'm-lib-1', workspaceId: 'ws-inst-library', name: 'Demo library administrator', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lib-2', workspaceId: 'ws-inst-library', name: 'Demo program coordinator', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lib-3', workspaceId: 'ws-inst-library', name: 'Demo partner organization', role: 'member', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lib-4', workspaceId: 'ws-inst-library', name: 'Demo new coordinator', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-sch-1', workspaceId: 'ws-school-elementary', name: 'Demo principal', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-sch-2', workspaceId: 'ws-school-elementary', name: 'Demo teacher', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-sch-3', workspaceId: 'ws-school-elementary', name: 'Demo parent council representative', role: 'member', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-sch-4', workspaceId: 'ws-school-elementary', name: 'Demo substitute teacher', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-acad-1', workspaceId: 'ws-school-academy', name: 'Demo academy director', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-acad-2', workspaceId: 'ws-school-academy', name: 'Demo instructor', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-org-1', workspaceId: 'ws-org-neighbours', name: 'Demo organization lead', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-org-2', workspaceId: 'ws-org-neighbours', name: 'Demo volunteer coordinator', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-org-3', workspaceId: 'ws-org-neighbours', name: 'Demo volunteer', role: 'member', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-org-4', workspaceId: 'ws-org-neighbours', name: 'Demo new volunteer', role: 'member', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-trl-1', workspaceId: 'ws-org-trail', name: 'Demo trail group lead', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-trl-2', workspaceId: 'ws-org-trail', name: 'Demo trail coordinator', role: 'staff', status: 'invited', synthetic: true }),
+  // M07 members. Offices and departments each have an owner (approver), staff, a view-only member and an invited person.
+  workspaceMemberSchema.parse({ id: 'm-ward-1', workspaceId: 'ws-ward-sample', name: 'Demo chief of staff', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-ward-2', workspaceId: 'ws-ward-sample', name: 'Demo constituent services officer', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-ward-3', workspaceId: 'ws-ward-sample', name: 'Demo communications officer', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-ward-4', workspaceId: 'ws-ward-sample', name: 'Demo policy intern', role: 'member', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-ward-5', workspaceId: 'ws-ward-sample', name: 'Demo new caseworker', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-dep-1', workspaceId: 'ws-office-deputy', name: 'Demo deputy office lead', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-dep-2', workspaceId: 'ws-office-deputy', name: 'Demo deputy office officer', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-works-1', workspaceId: 'ws-dept-works', name: 'Demo works manager', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-works-2', workspaceId: 'ws-dept-works', name: 'Demo works supervisor', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-works-3', workspaceId: 'ws-dept-works', name: 'Demo works dispatcher', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-works-4', workspaceId: 'ws-dept-works', name: 'Demo works observer', role: 'member', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-works-5', workspaceId: 'ws-dept-works', name: 'Demo new dispatcher', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-parks-1', workspaceId: 'ws-dept-parks', name: 'Demo parks manager', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-parks-2', workspaceId: 'ws-dept-parks', name: 'Demo parks supervisor', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-parks-3', workspaceId: 'ws-dept-parks', name: 'Demo parks observer', role: 'member', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lic-1', workspaceId: 'ws-dept-licensing', name: 'Demo licensing manager', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lic-2', workspaceId: 'ws-dept-licensing', name: 'Demo licensing officer', role: 'staff', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-lic-3', workspaceId: 'ws-dept-licensing', name: 'Demo new licensing officer', role: 'staff', status: 'invited', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-trn-1', workspaceId: 'ws-dept-transit', name: 'Demo transit manager', role: 'owner', status: 'active', synthetic: true }),
+  workspaceMemberSchema.parse({ id: 'm-trn-2', workspaceId: 'ws-dept-transit', name: 'Demo transit planner', role: 'staff', status: 'invited', synthetic: true }),
 ];
 
 /** The BIA signal loop (M05 WP4) is traced through this task: community issue -> workspace task -> outcome. */
 const SEED_TASKS: WorkspaceTask[] = [
   workspaceTaskSchema.parse({ id: 't-bia-vacancy', workspaceId: 'ws-bia-sample', title: 'Follow up the vacant storefront listing', kind: 'vacancy', status: 'open', synthetic: true }),
-<<<<<<< HEAD
   workspaceTaskSchema.parse({ id: 't-bia-works', workspaceId: 'ws-bia-sample', title: 'Track roadworks affecting shop access', kind: 'city-works', status: 'in-progress', synthetic: true }),
-=======
-  workspaceTaskSchema.parse({ id: 't-bia-works', workspaceId: 'ws-bia-sample', title: 'Track roadworks affecting shop access', kind: 'city-works', status: 'in-progress', sourceObjectId: 'w-roadworks', synthetic: true }),
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   workspaceTaskSchema.parse({ id: 't-bia-market', workspaceId: 'ws-bia-sample', title: 'Publish the Saturday market update', kind: 'event', status: 'open', synthetic: true }),
   workspaceTaskSchema.parse({ id: 't-bak-hours', workspaceId: 'ws-biz-bakery', title: 'Confirm market-day opening hours', kind: 'listing', status: 'in-progress', synthetic: true }),
   workspaceTaskSchema.parse({ id: 't-bak-offer', workspaceId: 'ws-biz-bakery', title: 'Publish the weekend offer', kind: 'offer', status: 'open', synthetic: true }),
   workspaceTaskSchema.parse({ id: 't-hw-listing', workspaceId: 'ws-biz-hardware', title: 'Complete the claimed listing details', kind: 'listing', status: 'open', synthetic: true }),
+  // M06 tasks.
+  workspaceTaskSchema.parse({ id: 't-lib-rooms', workspaceId: 'ws-inst-library', title: 'Confirm room bookings for the market weekend', kind: 'event', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-lib-review', workspaceId: 'ws-inst-library', title: 'Review the draft program before publishing', kind: 'general', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-sch-room', workspaceId: 'ws-school-elementary', title: 'Confirm the family math night room', kind: 'event', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-sch-notice', workspaceId: 'ws-school-elementary', title: 'Review the draft field trip notice', kind: 'general', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-acad-review', workspaceId: 'ws-school-academy', title: 'Respond to the verification review', kind: 'general', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-org-recruit', workspaceId: 'ws-org-neighbours', title: 'Recruit volunteers for garden days', kind: 'general', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-org-walk', workspaceId: 'ws-org-neighbours', title: 'Share the walk route for review', kind: 'event', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-trl-profile', workspaceId: 'ws-org-trail', title: 'Complete the organization profile', kind: 'general', status: 'open', synthetic: true }),
+  // M07 tasks (internal follow-ups). Routed cases also appear in a department's Tasks tab, derived from the case itself.
+  workspaceTaskSchema.parse({ id: 't-ward-brief', workspaceId: 'ws-ward-sample', title: 'Prepare the briefing for the 19 November community meeting', kind: 'event', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-ward-followup', workspaceId: 'ws-ward-sample', title: 'Call back the resident about the returned fire-rules question', kind: 'general', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-dep-profile', workspaceId: 'ws-office-deputy', title: 'Complete the office profile for verification', kind: 'general', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-works-crew', workspaceId: 'ws-dept-works', title: 'Confirm crew schedule for the corridor work', kind: 'city-works', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-works-signs', workspaceId: 'ws-dept-works', title: 'Order replacement detour signs', kind: 'city-works', status: 'open', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-parks-bench', workspaceId: 'ws-dept-parks', title: 'Get a quote for the lookout bench', kind: 'city-works', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-lic-review', workspaceId: 'ws-dept-licensing', title: 'Respond to the access review', kind: 'general', status: 'in-progress', synthetic: true }),
+  workspaceTaskSchema.parse({ id: 't-trn-profile', workspaceId: 'ws-dept-transit', title: 'Complete the department profile for verification', kind: 'general', status: 'open', synthetic: true }),
 ];
 
 const SEED_OFFERS: WorkspaceOffer[] = [
   workspaceOfferSchema.parse({ id: 'o-bak-1', workspaceId: 'ws-biz-bakery', businessId: 'w-bakery', title: 'Weekend bread bundle', summary: 'Demo offer for the Saturday market.', status: 'published', synthetic: true }),
   workspaceOfferSchema.parse({ id: 'o-hw-1', workspaceId: 'ws-biz-hardware', businessId: 'w-hardware', title: 'Garden weekend starter kit', summary: 'Draft offer, not public yet.', status: 'draft', synthetic: true }),
+];
+
+/** M06 programs. `objectId` points at an existing map object where one fits. */
+const SEED_PROGRAMS: WorkspaceProgram[] = [
+  workspaceProgramSchema.parse({ id: 'p-lib-tent', workspaceId: 'ws-inst-library', title: 'Reading tent at the harvest market', summary: 'Demo program: story hour and book swap beside the market.', status: 'published', objectId: 'w-market', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-lib-circles', workspaceId: 'ws-inst-library', title: 'Newcomer conversation circles', summary: 'Draft program, not public yet.', status: 'draft', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-sch-reading', workspaceId: 'ws-school-elementary', title: 'After-school reading club', summary: 'Demo program for families: weekly reading club.', status: 'published', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-sch-trip', workspaceId: 'ws-school-elementary', title: 'Spring field trip information', summary: 'Draft notice for families, not public yet.', status: 'draft', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-acad-english', workspaceId: 'ws-school-academy', title: 'Evening English conversation group', summary: 'Published before the review; visible but not editable while restricted.', status: 'published', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-org-garden', workspaceId: 'ws-org-neighbours', title: 'Streetscape garden volunteer days', summary: 'Demo initiative: monthly volunteer days.', status: 'published', objectId: 'w-garden', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-org-walks', workspaceId: 'ws-org-neighbours', title: 'Neighbourhood walk series', summary: 'Demo initiative: guided walks.', status: 'published', objectId: 'w-walk', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-org-calls', workspaceId: 'ws-org-neighbours', title: 'Winter check-in calls', summary: 'Draft initiative, not public yet.', status: 'draft', synthetic: true }),
+  workspaceProgramSchema.parse({ id: 'p-trl-cleanup', workspaceId: 'ws-org-trail', title: 'Trail lookout cleanup', summary: 'Draft initiative; cannot publish until the organization is verified.', status: 'draft', objectId: 'w-trail', synthetic: true }),
 ];
 
 /** Task status may only move forward one step at a time. */
@@ -157,15 +274,13 @@ const NEXT_TASK_STATUS: Record<Exclude<TaskStatus, 'done'>, TaskStatus> = {
 };
 
 export function createMockServices(options: MockOptions = {}): Services {
-<<<<<<< HEAD
-  const { latencyMs = 0, failObjects = false, emptyObjects = false } = options;
-=======
-  const { latencyMs = 0, failObjects = false, emptyObjects = false, persistKey } = options;
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+  const { latencyMs = 0, failObjects = false, emptyObjects = false, requestStore = appRequestStore, governanceStore = appGovStore } = options;
 
   // Working copy per factory call: writes (votes, reports, polls) stay in-session
   // and never leak into the validated fixtures or other factory instances.
   const objects: CivicObject[] = JSON.parse(JSON.stringify(FIXTURES.objects));
+  // M06: issues reported earlier in this session (on another page) are part of the map, with their current status.
+  objects.unshift(...(JSON.parse(JSON.stringify(requestStore.issueObjects)) as CivicObject[]));
 
   // M04 social state for the demo identity.
   const likeCounts = new Map<string, number>(Object.entries(SEED_LIKES));
@@ -177,11 +292,6 @@ export function createMockServices(options: MockOptions = {}): Services {
   let commentSeq = SEED_COMMENTS.length;
   let issueSeq = 0;
   let pollSeq = 0;
-<<<<<<< HEAD
-=======
-  let noteSeq = SEED_NOTIFICATIONS.length;
-  let taskSeq = SEED_TASKS.length;
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
 
   // M05 workspace state: per-factory copies, so claims, tasks and offers never
   // leak into the fixtures or into another factory instance (as in M04).
@@ -189,121 +299,11 @@ export function createMockServices(options: MockOptions = {}): Services {
   const members: WorkspaceMember[] = SEED_MEMBERS.map((m) => ({ ...m }));
   const tasks: WorkspaceTask[] = SEED_TASKS.map((t) => ({ ...t }));
   const offers: WorkspaceOffer[] = SEED_OFFERS.map((o) => ({ ...o }));
+  const programs: WorkspaceProgram[] = SEED_PROGRAMS.map((p) => ({ ...p }));
   let offerSeq = SEED_OFFERS.length;
+  let programSeq = SEED_PROGRAMS.length;
+  let memberSeq = SEED_MEMBERS.length;
 
-<<<<<<< HEAD
-=======
-  // The seeded signal-loop task is already linked to its community issue.
-  for (const t of tasks) {
-    const source = t.sourceObjectId ? objects.find((o) => o.id === t.sourceObjectId) : undefined;
-    if (source && !source.handledBy) source.handledBy = { workspaceId: t.workspaceId, taskId: t.id };
-  }
-
-  // ---- Session persistence (opt-in). Saved after every write, validated on restore. ----
-  const storage = (): Storage | null => {
-    if (!persistKey || typeof window === 'undefined') return null;
-    try {
-      return window.sessionStorage;
-    } catch {
-      return null;
-    }
-  };
-  const replace = <T,>(target: T[], next: T[]) => {
-    target.splice(0, target.length, ...next);
-  };
-  function restore() {
-    const store = storage();
-    if (!store || !persistKey) return;
-    try {
-      const raw = store.getItem(persistKey);
-      if (!raw) return;
-      const snap = JSON.parse(raw) as Record<string, unknown>;
-      if (snap.v !== 1) return;
-      const next = {
-        objects: z.array(civicObjectSchema).parse(snap.objects),
-        comments: z.array(commentSchema).parse(snap.comments),
-        notifications: z.array(notificationSchema).parse(snap.notifications),
-        workspaces: z.array(workspaceSchema).parse(snap.workspaces),
-        members: z.array(workspaceMemberSchema).parse(snap.members),
-        tasks: z.array(workspaceTaskSchema).parse(snap.tasks),
-        offers: z.array(workspaceOfferSchema).parse(snap.offers),
-        likes: z.array(z.tuple([z.string(), z.number()])).parse(snap.likes),
-        liked: z.array(z.string()).parse(snap.liked),
-        saved: z.array(z.string()).parse(snap.saved),
-        following: z.array(z.string()).parse(snap.following),
-        seq: z.record(z.string(), z.number()).parse(snap.seq),
-      };
-      replace(objects, next.objects as CivicObject[]);
-      replace(comments, next.comments);
-      replace(notifications, next.notifications);
-      replace(workspaces, next.workspaces);
-      replace(members, next.members);
-      replace(tasks, next.tasks);
-      replace(offers, next.offers);
-      likeCounts.clear();
-      next.likes.forEach(([k, v]) => likeCounts.set(k, v));
-      likedIds.clear();
-      next.liked.forEach((x) => likedIds.add(x));
-      savedIds.clear();
-      next.saved.forEach((x) => savedIds.add(x));
-      followingIds.clear();
-      next.following.forEach((x) => followingIds.add(x));
-      commentSeq = next.seq.comment ?? commentSeq;
-      issueSeq = next.seq.issue ?? issueSeq;
-      pollSeq = next.seq.poll ?? pollSeq;
-      offerSeq = next.seq.offer ?? offerSeq;
-      noteSeq = next.seq.note ?? noteSeq;
-      taskSeq = next.seq.task ?? taskSeq;
-    } catch {
-      // A stale or corrupt snapshot is ignored: the demo simply starts from the fixtures.
-      store.removeItem(persistKey);
-    }
-  }
-  function commit() {
-    const store = storage();
-    if (!store || !persistKey) return;
-    try {
-      store.setItem(
-        persistKey,
-        JSON.stringify({
-          v: 1,
-          objects, comments, notifications, workspaces, members, tasks, offers,
-          likes: [...likeCounts.entries()],
-          liked: [...likedIds],
-          saved: [...savedIds],
-          following: [...followingIds],
-          seq: { comment: commentSeq, issue: issueSeq, poll: pollSeq, offer: offerSeq, note: noteSeq, task: taskSeq },
-        }),
-      );
-    } catch {
-      // Storage full or blocked: the demo keeps working in memory.
-    }
-  }
-  restore();
-
-  /** Wrap the named write methods of a port so each successful write is saved. */
-  function persisting<T extends object>(port: T, names: (keyof T)[]): T {
-    const out = { ...port } as Record<string, unknown>;
-    for (const name of names) {
-      const fn = port[name] as unknown as (...args: unknown[]) => Promise<unknown>;
-      out[name as string] = async (...args: unknown[]) => {
-        const result = await fn(...args);
-        commit();
-        return result;
-      };
-    }
-    return out as T;
-  }
-
-  function notify(title: string, body: string, href: string) {
-    notifications.unshift(
-      notificationSchema.parse({
-        id: `n-local-${(noteSeq += 1)}`, title, body, createdAt: today(), read: false, href, synthetic: true,
-      }),
-    );
-  }
-
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   function workspaceOrThrow(id: string): Workspace {
     const found = workspaces.find((w) => w.id === id);
     if (!found) throw new Error(`Workspace "${id}" not found.`);
@@ -316,41 +316,28 @@ export function createMockServices(options: MockOptions = {}): Services {
     return found;
   }
 
-<<<<<<< HEAD
-  const social: SocialPort = {
-=======
-  function boundaryRing(id: string): LngLat[] | null {
-    const feature = FIXTURES.boundaries.features.find((f) => f.properties.id === id);
-    return (feature?.geometry.coordinates[0] as LngLat[] | undefined) ?? null;
+  function memberOrThrow(id: string): WorkspaceMember {
+    const found = members.find((m) => m.id === id);
+    if (!found) throw new Error(`Member "${id}" not found.`);
+    return found;
   }
 
   /**
-   * The signal loop: a task raised from a community issue carries its progress back
-   * to that issue. In progress -> the issue says so; done -> the issue is Resolved
-   * and gains a published outcome. Each step notifies the community.
+   * M06 permission gate, used by every mutation. A restricted workspace is
+   * read-only for everyone (with or without an actor); when an actor is given
+   * the shared `decide` rules apply on top.
    */
-  function syncSourceObject(task: WorkspaceTask) {
-    const issue = task.sourceObjectId ? objects.find((o) => o.id === task.sourceObjectId) : undefined;
-    if (!issue || issue.kind !== 'issue') return;
-    const workspace = workspaces.find((w) => w.id === task.workspaceId);
-    const who = workspace?.name ?? 'The BIA';
-    issue.handledBy = { workspaceId: task.workspaceId, taskId: task.id };
-    issue.updatedAt = today();
-    if (task.status === 'in-progress') {
-      issue.status = 'In progress';
-      notify('Work has started', `${who} has started work on “${issue.title}”.`, `/map?sel=${issue.id}`);
-    } else if (task.status === 'done') {
-      issue.status = 'Resolved';
-      issue.outcome = {
-        summary: `${who} completed “${task.title}”. The nearby shops and neighbours were told.`,
-        date: today(),
-      };
-      notify('Your issue was resolved', `${who} closed “${issue.title}”. See the outcome on the map.`, `/map?sel=${issue.id}`);
+  function guard(workspace: Workspace, action: PermissionAction, actor?: ActorContext): void {
+    if (workspace.status === 'restricted') {
+      throw new Error(denialMessage({ allowed: false, reason: 'This workspace is restricted, so it is read-only.' }));
+    }
+    if (actor) {
+      const decision = decide(action, actor, workspace.status);
+      if (!decision.allowed) throw new Error(denialMessage(decision));
     }
   }
 
-  const socialBase: SocialPort = {
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+  const social: SocialPort = {
     async likes(objectId) {
       await wait(latencyMs);
       objectOrThrow(objectId);
@@ -425,13 +412,17 @@ export function createMockServices(options: MockOptions = {}): Services {
     },
     async notifications() {
       await wait(latencyMs);
-      return notifications;
+      return [...requestNotifications(requestStore, FIXTURES.session.displayName), ...notifications];
     },
     async markNotificationsRead() {
       await wait(latencyMs);
       notifications.forEach((n) => {
         n.read = true;
       });
+      requestNotifications(requestStore, FIXTURES.session.displayName).forEach((n) => {
+        requestStore.readEventIds.add(n.id.slice('note-'.length));
+      });
+      requestStore.onChange?.();
     },
     async vote(pollId, optionId) {
       await wait(latencyMs);
@@ -453,11 +444,7 @@ export function createMockServices(options: MockOptions = {}): Services {
         title,
         summary: input.summary.trim() || 'Reported from the Neighbr shell (demo).',
         cityId: input.cityId,
-<<<<<<< HEAD
-        geo: { type: 'point', coordinates: [-83.037, 42.317] },
-=======
-        geo: { type: 'point', coordinates: input.coordinates ?? ([-83.037, 42.317] as LngLat) },
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
+        geo: { type: 'point', coordinates: input.coordinates ?? [-83.037, 42.317] },
         status: 'Open',
         visibility: 'public',
         updatedAt: today(),
@@ -465,6 +452,9 @@ export function createMockServices(options: MockOptions = {}): Services {
         synthetic: true,
       });
       objects.unshift(issue);
+      // Share it with the other pages (map, Pulse, workspaces) even if no organization receives it.
+      requestStore.issueObjects.push(JSON.parse(JSON.stringify(issue)) as CivicObject);
+      requestStore.onChange?.();
       return issue;
     },
     async createPoll(input) {
@@ -497,11 +487,7 @@ export function createMockServices(options: MockOptions = {}): Services {
     },
   };
 
-<<<<<<< HEAD
   const workspacesPort: WorkspacePort = {
-=======
-  const workspacesBase: WorkspacePort = {
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     async workspaces() {
       await wait(latencyMs);
       return workspaces.map((w) => ({ ...w }));
@@ -521,9 +507,9 @@ export function createMockServices(options: MockOptions = {}): Services {
       workspaceOrThrow(workspaceId);
       return tasks.filter((t) => t.workspaceId === workspaceId).map((t) => ({ ...t }));
     },
-    async updateTask(workspaceId, taskId, status) {
+    async updateTask(workspaceId, taskId, status, actor) {
       await wait(latencyMs);
-      workspaceOrThrow(workspaceId);
+      guard(workspaceOrThrow(workspaceId), 'work', actor);
       const task = tasks.find((t) => t.id === taskId && t.workspaceId === workspaceId);
       if (!task) throw new Error(`Task "${taskId}" not found in this workspace.`);
       if (task.status === 'done') throw new Error('A done task cannot move back.');
@@ -531,10 +517,6 @@ export function createMockServices(options: MockOptions = {}): Services {
         throw new Error(`Task can only move from ${task.status} to ${NEXT_TASK_STATUS[task.status]}.`);
       }
       task.status = status;
-<<<<<<< HEAD
-=======
-      syncSourceObject(task);
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       return { ...task };
     },
     async offers(workspaceId) {
@@ -542,9 +524,9 @@ export function createMockServices(options: MockOptions = {}): Services {
       workspaceOrThrow(workspaceId);
       return offers.filter((o) => o.workspaceId === workspaceId).map((o) => ({ ...o }));
     },
-    async createOffer(input) {
+    async createOffer(input, actor) {
       await wait(latencyMs);
-      workspaceOrThrow(input.workspaceId);
+      guard(workspaceOrThrow(input.workspaceId), 'work', actor);
       const business = objectOrThrow(input.businessId);
       if (business.kind !== 'business') throw new Error('An offer must belong to a business listing.');
       const title = input.title.trim();
@@ -561,20 +543,22 @@ export function createMockServices(options: MockOptions = {}): Services {
       offers.push(offer);
       return { ...offer };
     },
-    async publishOffer(offerId) {
+    async publishOffer(offerId, actor) {
       await wait(latencyMs);
       const offer = offers.find((o) => o.id === offerId);
       if (!offer) throw new Error(`Offer "${offerId}" not found.`);
+      const owner = workspaceOrThrow(offer.workspaceId);
+      guard(owner, 'publish', actor);
       if (offer.status !== 'draft') throw new Error('Only a draft offer can be published.');
-      if (workspaceOrThrow(offer.workspaceId).status !== 'verified') {
+      if (owner.status !== 'verified') {
         throw new Error('Only a verified workspace can publish offers.');
       }
       offer.status = 'published';
       return { ...offer };
     },
-    async claimListing(workspaceId, objectId) {
+    async claimListing(workspaceId, objectId, actor) {
       await wait(latencyMs);
-      workspaceOrThrow(workspaceId);
+      guard(workspaceOrThrow(workspaceId), 'work', actor);
       const object = objectOrThrow(objectId);
       if (object.kind !== 'business') throw new Error('Only a business listing can be claimed.');
       if (object.workspaceId && object.workspaceId !== workspaceId) {
@@ -583,71 +567,99 @@ export function createMockServices(options: MockOptions = {}): Services {
       object.workspaceId = workspaceId;
       return { ...object };
     },
-<<<<<<< HEAD
-  };
 
-=======
-    async raiseTaskFromIssue(workspaceId, issueId) {
+    // ---- M06: programs ----
+    async programs(workspaceId) {
       await wait(latencyMs);
-      const workspace = workspaceOrThrow(workspaceId);
-      if (workspace.kind !== 'bia' || !workspace.boundaryId) {
-        throw new Error('Only a BIA workspace with a boundary can take on community issues.');
-      }
-      if (workspace.status !== 'verified') throw new Error('Only a verified workspace can take on community issues.');
-      const issue = objectOrThrow(issueId);
-      if (issue.kind !== 'issue') throw new Error('Only a community issue can be turned into a task.');
-      if (issue.handledBy) throw new Error('This issue is already being handled.');
-      const ring = boundaryRing(workspace.boundaryId);
-      if (!ring || !pointInRing(issue.geo.coordinates, ring)) {
-        throw new Error('This issue is outside the BIA boundary, so this BIA cannot take it on.');
-      }
-      const task = workspaceTaskSchema.parse({
-        id: `task-local-${Date.now()}-${(taskSeq += 1)}`,
-        workspaceId,
-        title: `Respond to: ${issue.title}`,
-        kind: 'general',
-        status: 'open',
-        sourceObjectId: issue.id,
+      workspaceOrThrow(workspaceId);
+      return programs.filter((p) => p.workspaceId === workspaceId).map((p) => ({ ...p }));
+    },
+    async createProgram(input, actor) {
+      await wait(latencyMs);
+      guard(workspaceOrThrow(input.workspaceId), 'work', actor);
+      const title = input.title.trim();
+      if (!title) throw new Error('A program needs a title.');
+      if (input.objectId) objectOrThrow(input.objectId);
+      const program = workspaceProgramSchema.parse({
+        id: `program-local-${Date.now()}-${(programSeq += 1)}`,
+        workspaceId: input.workspaceId,
+        title,
+        summary: input.summary.trim() || 'Program from the Neighbr shell (demo).',
+        status: 'draft',
+        ...(input.objectId ? { objectId: input.objectId } : {}),
         synthetic: true,
       });
-      tasks.push(task);
-      issue.handledBy = { workspaceId, taskId: task.id };
-      issue.status = 'Acknowledged';
-      issue.updatedAt = today();
-      notify(
-        'Your report was acknowledged',
-        `${workspace.name} has taken on “${issue.title}”. You will be told when it moves.`,
-        `/map?sel=${issue.id}`,
+      programs.push(program);
+      return { ...program };
+    },
+    async publishProgram(programId, actor) {
+      await wait(latencyMs);
+      const program = programs.find((p) => p.id === programId);
+      if (!program) throw new Error(`Program "${programId}" not found.`);
+      const owner = workspaceOrThrow(program.workspaceId);
+      guard(owner, 'publish', actor);
+      if (program.status !== 'draft') throw new Error('Only a draft program can be published.');
+      if (owner.status !== 'verified') {
+        throw new Error('Only a verified workspace can publish programs.');
+      }
+      program.status = 'published';
+      return { ...program };
+    },
+
+    // ---- M06: member management ----
+    async inviteMember(input, actor) {
+      await wait(latencyMs);
+      guard(workspaceOrThrow(input.workspaceId), 'manage', actor);
+      const name = input.name.trim();
+      if (!name) throw new Error('An invitation needs a name.');
+      if (name.length > 60) throw new Error('A name can be at most 60 characters.');
+      if (!['owner', 'staff', 'member'].includes(input.role)) throw new Error(`Unknown role "${input.role}".`);
+      const duplicate = members.some(
+        (m) => m.workspaceId === input.workspaceId && m.name.toLowerCase() === name.toLowerCase(),
       );
-      return { ...task };
+      if (duplicate) throw new Error('That person is already a member or has already been invited.');
+      const member = workspaceMemberSchema.parse({
+        id: `member-local-${Date.now()}-${(memberSeq += 1)}`,
+        workspaceId: input.workspaceId,
+        name,
+        role: input.role,
+        status: 'invited',
+        synthetic: true,
+      });
+      members.push(member);
+      return { ...member };
+    },
+    async changeMemberRole(memberId, role, actor) {
+      await wait(latencyMs);
+      const member = memberOrThrow(memberId);
+      guard(workspaceOrThrow(member.workspaceId), 'manage', actor);
+      if (!['owner', 'staff', 'member'].includes(role)) throw new Error(`Unknown role "${role}".`);
+      if (member.role === role) throw new Error(`This person is already ${role}.`);
+      if (member.role === 'owner' && member.status === 'active') {
+        const activeOwners = members.filter(
+          (m) => m.workspaceId === member.workspaceId && m.role === 'owner' && m.status === 'active',
+        );
+        if (activeOwners.length <= 1) throw new Error('A workspace must keep at least one active owner.');
+      }
+      member.role = role as MemberRole;
+      return { ...member };
+    },
+    async acceptInvite(memberId) {
+      await wait(latencyMs);
+      const member = memberOrThrow(memberId);
+      if (member.status !== 'invited') throw new Error('This person has no pending invitation.');
+      member.status = 'active';
+      return { ...member };
     },
   };
 
-  const social = persisting(socialBase, [
-    'react', 'unreact', 'addComment', 'toggleSave', 'follow', 'unfollow',
-    'markNotificationsRead', 'vote', 'reportIssue', 'createPoll',
-  ]);
-  const workspacesPort = persisting(workspacesBase, [
-    'updateTask', 'createOffer', 'publishOffer', 'claimListing', 'raiseTaskFromIssue',
-  ]);
-
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
   return {
     objects: {
       async list(query) {
         await wait(latencyMs);
         if (failObjects) throw new Error('The mock service was told to fail (demo=error).');
         if (emptyObjects) return [];
-<<<<<<< HEAD
         return filterObjects(objects, query);
-=======
-        let ring: LngLat[] | undefined;
-        if (query.boundaryId) {
-          ring = boundaryRing(query.boundaryId) ?? undefined;
-          if (!ring) throw new Error(`Boundary "${query.boundaryId}" not found.`);
-        }
-        return filterObjects(objects, query, ring);
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
       },
       async get(id) {
         await wait(latencyMs);
@@ -662,13 +674,6 @@ export function createMockServices(options: MockOptions = {}): Services {
           features: FIXTURES.boundaries.features.filter((f) => f.properties.cityId === cityId),
         };
       },
-<<<<<<< HEAD
-=======
-      async get(id) {
-        await wait(latencyMs);
-        return FIXTURES.boundaries.features.find((f) => f.properties.id === id) ?? null;
-      },
->>>>>>> 097e8d177c60125dbf39b50b1d33d0c88ededa45
     },
     cities: {
       async list() {
@@ -689,5 +694,15 @@ export function createMockServices(options: MockOptions = {}): Services {
     },
     social,
     workspaces: workspacesPort,
+    requests: createRequestPort({
+      store: requestStore,
+      objects,
+      workspaces,
+      members,
+      boundaries: FIXTURES.boundaries.features,
+      requesterName: FIXTURES.session.displayName,
+      wait: () => wait(latencyMs),
+    }),
+    governance: createGovernancePort({ store: governanceStore, workspaces, wait: () => wait(latencyMs) }),
   };
 }

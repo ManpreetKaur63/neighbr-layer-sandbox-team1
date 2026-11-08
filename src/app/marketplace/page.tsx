@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { RouteStub } from '@/components/RouteStub';
+import { MarketplaceClient } from './MarketplaceClient';
 
-export const metadata: Metadata = { title: "Marketplace \u00b7 Neighbr" };
+export const metadata: Metadata = { title: 'Marketplace · Neighbr' };
 
 export default function Page() {
-  return <RouteStub path="/marketplace" />;
+  return <MarketplaceClient />;
 }
