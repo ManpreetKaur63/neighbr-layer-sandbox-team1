@@ -1,0 +1,47 @@
+import chromium from '@sparticuz/chromium';
+import { chromium as pw } from 'playwright-core';
+import fs from 'node:fs';
+const out = '/home/claude/proj/neighbr-shell-m03/docs/evidence/m07';
+fs.mkdirSync(out, { recursive: true });
+const exe = await chromium.executablePath();
+const base = 'http://localhost:3100';
+async function shot(ctxOpts, name, url, steps = async () => {}) {
+  const browser = await pw.launch({ executablePath: exe, args: chromium.args, headless: true });
+  const ctx = await browser.newContext(ctxOpts);
+  const page = await ctx.newPage();
+  await page.goto(base + url, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(500);
+  await steps(page);
+  await page.waitForTimeout(300);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await page.screenshot({ path: `${out}/${name}.png`, fullPage: true });
+  console.log(name, 'horizontal overflow px:', overflow);
+  await browser.close();
+}
+const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+const small = { viewport: { width: 360, height: 640 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+const desk = { viewport: { width: 1280, height: 800 } };
+const O = '/representative?ws=ws-ward-sample';
+await shot(desk, '01-office-dashboard-desktop', O);
+await shot(phone, '02-office-dashboard-phone', O);
+await shot(phone, '03-menu-open-phone', O, async (p) => { await p.getByRole('button', { name: 'Menu' }).click(); });
+await shot(desk, '04-public-view-desktop', O + '&tab=public');
+await shot(phone, '05-public-view-phone', O + '&tab=public');
+await shot(desk, '06-cases-desktop', O + '&tab=cases', async (p) => { await p.getByRole('button', { name: /CASE-1006/ }).click(); });
+await shot(phone, '07-cases-list-phone', O + '&tab=cases');
+await shot(phone, '08-case-detail-phone', O + '&tab=cases', async (p) => { await p.getByRole('button', { name: /CASE-1006/ }).click(); });
+await shot(phone, '09-refused-route-phone', O + '&tab=cases', async (p) => {
+  await p.getByRole('button', { name: /CASE-1001/ }).click();
+  await p.getByRole('combobox', { name: 'Route to a department' }).selectOption('ws-dept-licensing');
+  await p.getByRole('button', { name: 'Route case' }).click();
+  await p.waitForTimeout(400);
+});
+await shot(phone, '10-communications-phone', O + '&tab=communications');
+await shot(phone, '11-audit-phone', O + '&tab=audit');
+await shot(desk, '12-audit-desktop', O + '&tab=audit');
+await shot(desk, '13-department-dashboard-desktop', '/representative?ws=ws-dept-works');
+await shot(phone, '14-department-cases-phone', '/representative?ws=ws-dept-works&tab=cases');
+await shot(phone, '15-restricted-department-phone', '/representative?ws=ws-dept-licensing&tab=communications');
+await shot(small, '16-office-dashboard-360', O);
+await shot(small, '17-case-detail-360', O + '&tab=cases', async (p) => { await p.getByRole('button', { name: /CASE-1002/ }).click(); });
+await shot(phone, '18-roles-phone', O + '&tab=roles');

@@ -1,6 +1,6 @@
 # Route coverage matrix
 
-Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same data drives the `/status` page.
+Generated from `src/lib/routes.ts` for milestones M01–M07. The same data drives the `/status` page.
 
 | Route | Family | Milestone | Status | Data source | States covered | Test |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -19,12 +19,12 @@ Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same dat
 | `/notifications` | Identity and profile | M04 | Built | SocialPort.notifications (in-memory) | loading, empty, error, success | unit `social-port.test.ts` |
 | `/groups` | Community | M04 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/events` | Community | M05 | Built | Mock services (`/mock`): event kind | loading, empty, error, success | unit `workspace-port.test.ts` cross-journey; build prerenders it |
-| `/messages` | Community | M04 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
-| `/marketplace` | Community | M04 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
+| `/messages` | Community | M04 | Partly built | The person's requests, replies and follow-up (request conversations only; no direct or group chats) | empty (no requests), loading, error | `request-journey-ui.test.tsx`; build prerenders it |
+| `/marketplace` | Community | M04 | Built | Published offers from business workspaces; Request address | empty, loading, error | `request-journey-ui.test.tsx`; build prerenders it |
 | `/businesses` | Community | M05 | Built | Mock services (`/mock`): business kind + WorkspacePort claim state | loading, empty, error, success | unit `workspace-port.test.ts` |
-| `/institution` | Institutional | M06 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
-| `/organization` | Institutional | M06 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
-| `/representative` | Institutional | M07 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
+| `/institution` | Institutional | M06 | Built | WorkspacePort (members, tasks, programs, roles) for the institution and two school tenants | loading, error (unknown `?ws=`), success; restricted, onboarding and no-access (invited) states per tenant | unit `workspace-m06.test.ts`, `permissions.test.ts` |
+| `/organization` | Institutional | M06 | Built | WorkspacePort (members, tasks, programs, roles) for two community organization tenants | loading, error (unknown `?ws=`), success; onboarding and no-access (invited) states | unit `workspace-m06.test.ts`, `permissions.test.ts` |
+| `/representative` | Institutional | M07 | Built | GovernancePort (cases, communications, audit) + WorkspacePort (members, tasks) for two offices and four departments | loading, error (unknown `?ws=`), success; onboarding, restricted and no-access (invited) states per tenant; empty public view | unit `governance-rules.test.ts`, `governance-port.test.ts`, `governance-ui.test.tsx` |
 | `/business` | Institutional | M05 | Built | WorkspacePort (members, tasks, offers, claim) + mock objects | loading, empty, error, success | unit `workspace-port.test.ts` |
 | `/bia` | Institutional | M05 | Built | WorkspacePort (members, tasks, offers, claim) + mock objects | loading, empty, error, success | unit `workspace-port.test.ts` |
 | `/admin` | Administration | M08 | Stub | None yet | restricted | e2e route responds (sampled); build prerenders it |
@@ -38,4 +38,4 @@ Generated from `src/lib/routes.ts` for milestones M01–M05 merged. The same dat
 | `/accessibility` | Delivery support | M09 | Stub | None yet | empty | e2e route responds (sampled); build prerenders it |
 | `/status` | Delivery support | M03 | Built | `routes.ts` | success | e2e route responds (sampled); build prerenders it |
 
-33 routes: 16 built, 2 partly built, 15 stubs. Stubs show the shared empty or restricted state and link back to the map.
+33 routes: 19 built, 2 partly built, 12 stubs. Stubs show the shared empty or restricted state and link back to the map.

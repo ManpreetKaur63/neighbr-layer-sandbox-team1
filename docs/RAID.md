@@ -13,3 +13,26 @@
 | I2 | Issue | Layer 2 workspaces, onboarding, posts and polls are not built | Team | Scheduled in M02, M04 to M08. Stubs make routes real now. | Planned |
 | I3 | Issue | Manual keyboard and screen-reader pass has not been done | Quality lead | axe scan passes for `/map`. Manual review scheduled in M09. | Open |
 | D1 | Dependency | Frozen compatibility profile and clarification log are in the control repository | Delivery lead | Check them against ADR-001 before the next gate. | Open |
+
+## M06 additions
+
+| ID | Type | Item | Owner | Response | Status |
+| --- | --- | --- | --- | --- | --- |
+| R6 | Risk | The "view as" role switch could be mistaken for real access control | Team | Labelled a demo role switch in the shell and on the Roles & access tab; no authentication exists. A production workspace service must check a real signed-in identity (M05-D3 stays open for production). | Open |
+| R7 | Risk | School and community-organization workspaces could be read as holding real people's data | Team | Demo names only; per-kind safeguard notices (no student records, no contact details or donations). Do not add real or student data to fixtures. | Mitigated |
+| I4 | Issue | New tenants have no pins on the shared map; their programs link only to existing map objects | Team | Fixtures left unchanged so the Windsor result counts pinned by the map tests do not move. Add tenant pins as a follow-up with the tests updated to derive counts from the fixtures. | Open |
+| I5 | Issue | Fixture `w-ward` points at workspace `ws-ward-sample`, which does not exist, so its "Open in workspace" link shows "Workspace not found" | Team | Found while reading the fixtures; belongs to the Representative workspace (M07). Not changed in M06. | Open |
+| R8 | Risk | Request state could be read as lost data on reload | Team | Mitigated 2 Nov: request store and reported issues are saved in session storage (guarded). Other state (likes, saved items, workspace drafts and invitations) still resets on reload. Different tabs do not share state. | Partly mitigated |
+| I6 | Issue | Each page built its own mock services, so a report filed on one page was invisible on the next | Team | Fixed for requests and reported issues with a store the services share (`src/services/mock/requests.ts`). Other state (likes, saved items, offers drafted in a workspace) is still per page. | Partly fixed |
+| I7 | Issue | The request journey had not been clicked through in a real browser | Team | Done 2 Nov in headless Chromium against the production build (`docs/evidence/m06/`). The team's own browser test and the Playwright suite are still open. | Partly closed |
+| I8 | Issue | BIA directory listed every business in the city; reports were placed outside the corridor and routed by city | Team | Fixed 2 Nov: directory, events and counts limited to the boundary; routing by boundary. The corridor polygon is an illustrative placeholder and must be replaced with vetted geometry. | Fixed (placeholder geometry) |
+
+## M07 additions
+
+| ID | Type | Item | Owner | Response | Status |
+| --- | --- | --- | --- | --- | --- |
+| I5 | Issue | (from M06) `w-ward` pointed at a missing workspace | Team | Fixed: the office workspace id is `ws-ward-sample`; the map link resolves. | Closed |
+| R9 | Risk | The audit record could be mistaken for a real, tamper-proof log | Team | Labelled invented and demonstration-only on the Audit tab. In memory and the browser session only, no real identity, no integrity protection beyond append-only code. A production audit service needs signed identity, durable storage and tamper evidence. | Open |
+| R10 | Risk | Public view could leak internal detail | Team | Built only from published records; tests assert drafts, in-review, returned, withdrawn items and case text never appear. It does show a case reference on a published response. Confirm with Neighbr that a reference is acceptable. | Mitigated |
+| I9 | Issue | Office cases are a separate record from M06 resident requests; a resident report to a BIA does not become an office case | Team | Deliberate, to keep M06 stable. Join them when real routing rules exist. | Open |
+| I10 | Issue | Playwright and the axe scan were not run (Chromium could not be installed); phone screenshots used an npm-packaged headless Chromium | Team | Run `npm run test:e2e` on a team machine; manual keyboard and screen-reader pass still open. | Open |

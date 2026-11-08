@@ -20,3 +20,14 @@ Sources: Master Table week 3, Project Plan sections 4.4, 5 and 6, Shell Guide, o
 | M03-14 | Visitor context when viewing another city (team interpretation) | `resolveVisit`, `TopBar`, `DetailPanel` | unit `visit.test.ts`; unit + e2e restriction | e2e run | Done |
 | M03-15 | All required routes exist | `src/app`, `routes.ts`, `/status` | build prerenders 33 routes; e2e route sample | `docs/ROUTE_MATRIX.md` | Done (stubs) |
 | M03-16 | Clean install, lint, typecheck, test, build | CI workflow, `npm run check` | CI | `docs/M03_EVIDENCE.md` | Done |
+
+## M07 public office and government department workspaces
+
+| ID | Deliverable | Route / module | Test | Evidence | Status |
+| --- | --- | --- | --- | --- | --- |
+| M07-01 | Public office dashboard shell | `/representative` (office), `GovDashboard`, `PublicView` | `governance-ui.test.tsx` | `docs/evidence/m07/01, 02, 04, 05` | Done |
+| M07-02 | Government department workspace | `/representative?ws=ws-dept-*`, `CasesPanel`, `CommsPanel` | `governance-ui.test.tsx`, `governance-port.test.ts` | `13, 14, 15` | Done |
+| M07-03 | Case and task routing | `routeCase`, `caseStep`, `CaseTasks`, `canReceiveCases` | `governance-port.test.ts`, `governance-rules.test.ts` | `06, 07, 08, 09` | Done |
+| M07-04 | Publication states | `communicationStep`, `decideApproval`, `CommsPanel` | `governance-port.test.ts` | `10` | Done |
+| M07-05 | Audit-visible interaction evidence | `AuditPanel`, append-only `audit` | `governance-port.test.ts`, `governance-ui.test.tsx` | `11, 12` | Done (demo record, R9) |
+| M07-06 | Proper mobile view | `SiteHeader`, `WorkspaceShell`, `gov.module.css`, `globals.css` | `governance-ui.test.tsx` (list/detail); overflow measured 0 px at 360 and 390 | `02, 03, 05, 07, 08, 16, 17` | Done (not on a physical phone) |
