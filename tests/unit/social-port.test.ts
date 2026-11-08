@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createRequestStore } from '@/services/mock/requests';
 import { createMockServices } from '@/services/mock';
 
 describe('social port (M04)', () => {
@@ -124,8 +125,9 @@ describe('issue reporting (M04)', () => {
   });
 
   it('keeps factory instances isolated', async () => {
-    const a = createMockServices();
-    const b = createMockServices();
+    // Pages in the running app share issues through one store on purpose (M06); isolated stores keep these two apart.
+    const a = createMockServices({ requestStore: createRequestStore() });
+    const b = createMockServices({ requestStore: createRequestStore() });
     await a.social.reportIssue({ title: 'Only in A', summary: '', cityId: 'windsor' });
     const inB = await b.objects.list({ cityId: 'windsor', kinds: ['issue'], text: 'Only in A' });
     expect(inB).toEqual([]);

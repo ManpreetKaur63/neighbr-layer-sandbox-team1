@@ -135,6 +135,8 @@ export function SignUpClient() {
                 <>
                   <Link className="btn secondary" href="/bia">BIA workspace</Link>
                   <Link className="btn secondary" href="/business">Business workspace</Link>
+                  <Link className="btn secondary" href="/institution">Institution or school workspace</Link>
+                  <Link className="btn secondary" href="/organization">Community organization workspace</Link>
                 </>
               )}
             </div>

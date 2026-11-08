@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
-import { RouteStub } from '@/components/RouteStub';
+import { Suspense } from 'react';
+import { WorkspaceClient } from '@/components/WorkspaceClient';
+import { ROUTE_KINDS } from '@/lib/workspace-config';
 
-export const metadata: Metadata = { title: "Institution workspace \u00b7 Neighbr" };
+export const metadata: Metadata = { title: 'Institution workspace · Neighbr' };
 
+/** M06: serves institutions and schools from the same reusable shell; `?ws=` picks the tenant. */
 export default function Page() {
-  return <RouteStub path="/institution" />;
+  return (
+    <Suspense>
+      <WorkspaceClient kind="institution" kinds={ROUTE_KINDS['/institution']} />
+    </Suspense>
+  );
 }

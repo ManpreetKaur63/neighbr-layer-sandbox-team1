@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — M07 public office and government department workspaces
+- **One route, two more kinds.** `kind` gains `office` and `department`; `/representative` serves both (`?ws=` picks the tenant, `?tab=` opens a tab, e.g. `?ws=ws-ward-sample&tab=public`). Same shell and `KIND_CONFIG`; nothing copied (ADR-016). Route count unchanged (33): 19 built, 2 partly built, 12 stubs.
+- **Public office dashboard shell:** Sample Ward 4 Councillor's Office (verified) and Sample Deputy Mayor's Office (onboarding). Dashboard counts, case pipeline, needs-attention list, and a **Public view** tab that shows exactly what residents see (published items only, withheld items counted, phone/full width preview).
+- **Government department workspaces:** Public Works and Parks & Recreation (verified), Licensing & Permits (restricted), Transit Services (onboarding). A department only sees cases routed to it.
+- **Case and task routing:** office logs a case, routes it to a verified same-city department; the department accepts, returns (reason required) or closes (note required). A restricted or onboarding department cannot take cases. Case tasks in the Tasks tab are derived from the cases, so they cannot drift.
+- **Publication states:** draft, in review, returned, published, withdrawn. Approval needs the owner role and **a second person** (four-eyes, `decideApproval`). Return and withdraw need a reason. A case cannot close while a response to it is in review. Department responses publish onto the office's public view.
+- **Audit-visible interaction evidence:** new append-only audit record (who, role, what, from/to state, when). Refused attempts are recorded too. Per-workspace visibility, per-case record, filter, CSV download. The port has no edit or delete.
+- **Mobile:** header folds into a Menu button on phones; tab row scrolls sideways and keeps the current tab in view; workspace switcher is touch-sized pills; case list and case are separate screens with a way back; audit is cards, not a table; inputs are 16px with 44px targets; no horizontal overflow measured at 360 and 390 px wide.
+- Closes RAID I5 (`w-ward` now points at a real workspace, `ws-ward-sample`).
+- Tests: 57 new (`governance-rules` 15, `governance-port` 28, `governance-ui` 14). 191 of 191 pass; lint 0; typecheck pass; production build passes. Existing tests unchanged.
+- Not changed: authentication (none; "View as" is a demonstration), persistence beyond the browser session, the M06 request journey, `/admin/audit` (M08).
+
 ## Unreleased — M06 request journey (Messages and Marketplace built)
 - One request followed from the person, through the organization, and back. New `RequestPort` (`src/services/ports/index.ts`), request schema (`civicRequestSchema`), shared rules (`src/lib/requests.ts`) and a mock service with a store the pages share (`src/services/mock/requests.ts`). Statuses: submitted, in review, needs more information, declined, resolved; every change is written to a history; decline, question and resolution need a note.
 - Screens: a **Requests** tab (work queue) on the BIA and Business workspaces; **Messages** (`/messages`) is now the person's side of the journey (status, who can view or change it, record of what happened, reply, follow-up); **Marketplace** (`/marketplace`) lists published offers and sends a Request address request to the business. The report form also sends the issue to the BIA queue, and the issue on the map and Pulse follows the request status. Updates appear in Notifications.
