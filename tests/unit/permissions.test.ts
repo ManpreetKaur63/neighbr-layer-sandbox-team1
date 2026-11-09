@@ -63,13 +63,14 @@ describe('per-kind workspace configuration (M06)', () => {
   it('every kind has a route, tabs that start with the overview, and role labels for all three roles', () => {
     for (const [kind, cfg] of Object.entries(KIND_CONFIG)) {
       expect(cfg.tabs[0]?.id, kind).toBe('overview');
-      expect(cfg.tabs.some((t) => t.id === 'roles'), kind).toBe(true);
+      // M07: no Roles tab on any workspace — roles live in onboarding (src/lib/session.ts).
+      expect(cfg.tabs.map((t) => t.id as string).includes('roles'), kind).toBe(false);
       expect(Object.keys(cfg.roleLabels).sort(), kind).toEqual(['member', 'owner', 'staff']);
     }
   });
 
   it('program kinds have a programs tab; BIA and Business keep listings and offers', () => {
-    for (const kind of ['institution', 'organization', 'school'] as const) {
+    for (const kind of ['institution', 'organization', 'school', 'government'] as const) {
       expect(usesPrograms(kind), kind).toBe(true);
       expect(KIND_CONFIG[kind].tabs.some((t) => t.id === 'programs'), kind).toBe(true);
       expect(KIND_CONFIG[kind].tabs.some((t) => t.id === 'offers'), kind).toBe(false);

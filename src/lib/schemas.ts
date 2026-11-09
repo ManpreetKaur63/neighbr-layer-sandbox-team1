@@ -118,10 +118,13 @@ export type NotificationItem = z.infer<typeof notificationSchema>;
  * the layout code. There is deliberately no default workspace: a page must
  * name one explicitly (route `?ws=` or the first workspace of its kind).
  */
-export const workspaceKindSchema = z.enum(['bia', 'business']);
+export const workspaceKindSchema = z.enum(['bia', 'business', 'institution', 'organization', 'school', 'government']);
 export type WorkspaceKind = z.infer<typeof workspaceKindSchema>;
 
-/** Access state: onboarding tenants can set up but are not yet verified. */
+/**
+ * Access state: onboarding tenants can set up but are not yet verified;
+ * restricted tenants are read-only (M06 built that behaviour in the port).
+ */
 export const workspaceStatusSchema = z.enum(['onboarding', 'verified', 'restricted']);
 export type WorkspaceStatus = z.infer<typeof workspaceStatusSchema>;
 
@@ -132,6 +135,8 @@ export const workspaceSchema = z.object({
   cityId: z.string().min(1),
   status: workspaceStatusSchema,
   summary: z.string().min(1),
+  /** The area a workspace covers (a boundary id). Set for a BIA: its directory shows only what is inside it. */
+  boundaryId: z.string().min(1).optional(),
   synthetic: z.literal(true),
 });
 export type Workspace = z.infer<typeof workspaceSchema>;
@@ -181,3 +186,135 @@ export const workspaceOfferSchema = z.object({
   synthetic: z.literal(true),
 });
 export type WorkspaceOffer = z.infer<typeof workspaceOfferSchema>;
+
+/* ---------- M06: programs and permission states (Layer 2, more tenant types) ---------- */
+
+/**
+ * A program, service or notice owned by a workspace (institution services,
+ * community initiatives, school programs). Same draft -> published lifecycle
+ * as an offer; drafts stay inside the workspace. `objectId` optionally points
+ * at an existing civic object so the program can link to its map pin.
+ */
+export const programStatusSchema = z.enum(['draft', 'published']);
+export type ProgramStatus = z.infer<typeof programStatusSchema>;
+
+export const workspaceProgramSchema = z.object({
+  id: z.string().min(1),
+  workspaceId: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  status: programStatusSchema,
+  objectId: z.string().min(1).optional(),
+  synthetic: z.literal(true),
+});
+export type WorkspaceProgram = z.infer<typeof workspaceProgramSchema>;
+
+/** Who is acting: a member's role and whether their invitation was accepted. */
+export const memberStatusSchema = z.enum(['active', 'invited']);
+export type MemberStatus = z.infer<typeof memberStatusSchema>;
+
+/* ---------- M06 request journey: one request, followed from the person to the organization and back ---------- */
+
+/** What the person is asking for. `issue` is a report on the map; `address` asks a business to share an address (Marketplace). */
+export const requestKindSchema = z.enum(['issue', 'address']);
+export type RequestKind = z.infer<typeof requestKindSchema>;
+
+/** submitted -> in-review -> (needs-info <-> in-review) -> resolved or declined. A resolved or declined request can be reopened by the person. */
+export const requestStatusSchema = z.enum(['submitted', 'in-review', 'needs-info', 'declined', 'resolved']);
+export type RequestStatus = z.infer<typeof requestStatusSchema>;
+
+export const requestActionSchema = z.enum([
+  'submitted',
+  'assigned',
+  'review-started',
+  'info-requested',
+  'info-provided',
+  'declined',
+  'resolved',
+  'reopened',
+  'message-sent',
+]);
+export type RequestAction = z.infer<typeof requestActionSchema>;
+
+/** One line of the record of what happened: who did what, when. */
+export const requestEventSchema = z.object({
+  id: z.string().min(1),
+  at: z.string().min(1),
+  actor: z.string().min(1),
+  side: z.enum(['resident', 'handler', 'system']),
+  action: requestActionSchema,
+  note: z.string().optional(),
+});
+export type RequestEvent = z.infer<typeof requestEventSchema>;
+
+/** A message in the thread between the person and the organization. */
+export const requestMessageSchema = z.object({
+  id: z.string().min(1),
+  at: z.string().min(1),
+  from: z.enum(['resident', 'handler']),
+  author: z.string().min(1),
+  text: z.string().min(1).max(500),
+});
+export type RequestMessage = z.infer<typeof requestMessageSchema>;
+
+export const civicRequestSchema = z.object({
+  id: z.string().min(1),
+  kind: requestKindSchema,
+  title: z.string().min(1),
+  summary: z.string(),
+  cityId: z.string().min(1),
+  /** The map object this is about: the reported issue, or the business listing. */
+  objectId: z.string().optional(),
+  /** The workspace that handles the request (its work queue). */
+  workspaceId: z.string().min(1),
+  requester: z.string().min(1),
+  status: requestStatusSchema,
+  assignee: z.object({ id: z.string().min(1), name: z.string().min(1) }).optional(),
+  history: z.array(requestEventSchema),
+  messages: z.array(requestMessageSchema),
+  synthetic: z.literal(true),
+});
+export type CivicRequest = z.infer<typeof civicRequestSchema>;
+
+/**
+ * M07 addendum — the local database for onboarding. A demo account is a
+ * plain record: who signed up, which branch, which role. It NEVER contains
+ * a password — the signup password is validated only and is never stored.
+ */
+export const onboardingRoleSchema = z.enum([
+  'resident',
+  'business-owner',
+  'bia-coordinator',
+  'org-member',
+  'city-staff',
+]);
+export type OnboardingRole = z.infer<typeof onboardingRoleSchema>;
+
+export const onboardingBranchSchema = z.enum(['individual', 'organization']);
+export type OnboardingBranch = z.infer<typeof onboardingBranchSchema>;
+
+export const onboardingAccountSchema = z.object({
+  /** The account key: the email the person signed up with. */
+  email: z.string().email(),
+  name: z.string().min(1),
+  branch: onboardingBranchSchema,
+  /** Empty for an individual account. */
+  organizationName: z.string(),
+  role: onboardingRoleSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+export type OnboardingAccount = z.infer<typeof onboardingAccountSchema>;
+
+/** Profile and preference settings for the signed-in demo account. */
+export const onboardingSettingsSchema = z.object({
+  key: z.literal('main'),
+  /** Display name, shown on the profile and in Settings. */
+  displayName: z.string(),
+  showPublicly: z.boolean(),
+  shareLocation: z.boolean(),
+  largerText: z.boolean(),
+  /** The account currently signed in on this device, if any. */
+  currentAccountEmail: z.string().nullable(),
+});
+export type OnboardingSettings = z.infer<typeof onboardingSettingsSchema>;

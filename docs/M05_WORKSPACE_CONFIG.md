@@ -54,7 +54,7 @@ Workspace status gates (enforced in the mock port, tested):
 
 - `onboarding`: listings, tasks and draft offers allowed; publishing rejected.
 - `verified`: full tenant behaviour above.
-- `restricted`: no behaviour built yet; the badge exists so the state is visible.
+- `restricted`: no behaviour was built in M05; the badge existed so the state was visible. **Update (M06):** restricted is now read-only in the port — see `docs/M06_ROLES_AND_PERMISSIONS.md`.
 
 Claim rule: a business listing with no `workspaceId` can be claimed into one
 workspace; a listing already claimed by another workspace rejects a second
@@ -84,7 +84,7 @@ whatever their manifest adds (e.g. different tab sets). Do not fork
 
 ## 6. Known limitations (do not hide these at review)
 
-- No authentication, no real role enforcement, no messages/documents/analytics.
+- No authentication, no real role enforcement, no messages/documents/analytics. (M06 update: the mock port now enforces roles when given an actor; there is still no authentication.)
 - All data is synthetic and in-memory per session; claims, tasks and offers
   reset on reload and are not shared between browsers.
 - The public marketplace (`/marketplace`) is still a stub: workspace offers

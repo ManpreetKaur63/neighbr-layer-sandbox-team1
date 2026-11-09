@@ -65,13 +65,22 @@ export function validateSignUp(input: SignUpInput): string[] {
   return errors;
 }
 
+import type { OnboardingRole } from './session';
+
+/** The role step (M07): a role must be chosen before the review step. */
+export function validateRole(role: OnboardingRole | null): string | null {
+  if (!role) return 'Choose a role to continue.';
+  return null;
+}
+
 /** Onboarding journey steps per branch — the journey, not just the form. */
 export function onboardingSteps(branch: SignupBranch): string[] {
   return branch === 'individual'
-    ? ['Create your account', 'Set up your fixed profile', 'Choose your home city', 'Open the shared map']
+    ? ['Create your account', 'Set up your fixed profile', 'Choose your role in Neighbr', 'Choose your home city', 'Open the shared map']
     : [
         'Create your organization account',
         'Set up your organization profile',
+        'Choose your role in Neighbr',
         'Verification (demo — no real verification happens here)',
         'Open your workspace entry',
       ];

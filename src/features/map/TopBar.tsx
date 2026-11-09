@@ -38,7 +38,16 @@ export function TopBar({ city, visit, lens, searchText, onSearchText, onLens, on
       </form>
 
       <button type="button" className={styles.cityButton} onClick={onOpenDestination} aria-haspopup="dialog">
-        <span className={styles.cityName}>{city ? `${city.name}, ${city.region}` : 'Choose a place'}</span>
+        <span className={styles.cityName}>
+          {city ? (
+            <>
+              {city.name}
+              <span className={styles.cityRegion}>, {city.region}</span>
+            </>
+          ) : (
+            'Choose a place'
+          )}
+        </span>
         <span aria-hidden="true">▾</span>
         <span className={styles.srOnly}>Change place</span>
       </button>
