@@ -21,7 +21,10 @@ describe('government department workspace (M07)', () => {
     expect(cfg.route).toBe('/government');
     expect(routeForKind('government')).toBe('/government');
     expect(ROUTE_KINDS['/government']).toEqual(['government']);
-    expect(cfg.tabs.map((t) => t.id)).toEqual(['overview', 'members', 'programs', 'requests', 'events', 'tasks']);
+    // Merged M07: the governance tabs (cases, communications, public, audit) sit on the government kind.
+    expect(cfg.tabs.map((t) => t.id)).toEqual([
+      'overview', 'cases', 'communications', 'public', 'members', 'programs', 'requests', 'events', 'tasks', 'audit',
+    ]);
     expect(usesPrograms('government')).toBe(true);
     expect(cfg.roleLabels).toEqual({ owner: 'Department head', staff: 'Department staff', member: 'Partner (view only)' });
   });

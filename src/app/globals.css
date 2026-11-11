@@ -104,7 +104,10 @@ table.matrix th { background: var(--paper-2); }
 .muted { color: var(--ink-soft); }
 .lede { font-size: 1.125rem; max-width: 62ch; }
 
-/* ---------- M07: tenant shell on small screens ---------- */
+/* ---------- M07 governance merge: tenant shell on small screens (from Saloni Patel's M07 tree) ---------- */
+/* The .switcher/.viewAs/.tabs selectors below belong to her WorkspaceShell variant and are currently unused
+ * in this tree (fateh's shell was kept, ADR-017 removed the "view as" picker); they are kept as-is to avoid
+ * a partial copy. The media queries are the live part: they keep cards, buttons and tables usable on a phone. */
 .switcher { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
 .switcher ul { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
 .switcher .pill { min-height: 44px; text-align: left; }

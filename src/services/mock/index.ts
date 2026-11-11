@@ -32,6 +32,7 @@ import { decide, denialMessage, type ActorContext, type PermissionAction } from 
 import { filterObjects } from '@/lib/query';
 import type { Services, SocialPort, WorkspacePort } from '../ports';
 import { appRequestStore, createRequestPort, requestNotifications, type RequestStore } from './requests';
+import { appGovStore, createGovernancePort, type GovStore } from './governance';
 
 export interface MockOptions {
   /** Artificial delay so loading states are visible and testable. */
@@ -45,6 +46,8 @@ export interface MockOptions {
    * between pages; tests pass `createRequestStore()` so nothing leaks between them.
    */
   requestStore?: RequestStore;
+  /** M07 governance merge: where cases, communications and the audit record live. Same idea as `requestStore`. */
+  governanceStore?: GovStore;
 }
 
 /** Fixtures are validated against the shared contracts the moment the module loads. */
@@ -237,7 +240,7 @@ const NEXT_TASK_STATUS: Record<Exclude<TaskStatus, 'done'>, TaskStatus> = {
 };
 
 export function createMockServices(options: MockOptions = {}): Services {
-  const { latencyMs = 0, failObjects = false, emptyObjects = false, requestStore = appRequestStore } = options;
+  const { latencyMs = 0, failObjects = false, emptyObjects = false, requestStore = appRequestStore, governanceStore = appGovStore } = options;
 
   // Working copy per factory call: writes (votes, reports, polls) stay in-session
   // and never leak into the validated fixtures or other factory instances.
@@ -666,5 +669,6 @@ export function createMockServices(options: MockOptions = {}): Services {
       requesterName: FIXTURES.session.displayName,
       wait: () => wait(latencyMs),
     }),
+    governance: createGovernancePort({ store: governanceStore, workspaces, wait: () => wait(latencyMs) }),
   };
 }

@@ -17,7 +17,8 @@ export default function StatusPage() {
         <p>
           {ROUTES.length} required routes exist. {counts.built} built, {counts.partial} partly built and {counts.stub} planned
           stubs. Milestones M01–M07 are in this codebase; M02 was built
-          as a backfill and M07 (public office and government department workspaces) is the latest milestone.
+          as a backfill and M07 (public office and government department workspaces, plus the governance
+          merge: case routing, publication states and an audit record) is the latest milestone.
         </p>
         <table className="matrix">
           <caption className="sr-only">Route coverage</caption>
