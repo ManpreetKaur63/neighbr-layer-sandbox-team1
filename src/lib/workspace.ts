@@ -1,4 +1,5 @@
 import type { WorkspaceKind } from './schemas';
+import { routeForKind } from './workspace-config';
 
 /**
  * M05 cross-journey helpers. These are the only places that know which
@@ -6,9 +7,14 @@ import type { WorkspaceKind } from './schemas';
  * and the workspace pages can never drift apart.
  */
 
-/** Workspace deep link, e.g. `/business?ws=ws-biz-bakery`. */
+/**
+ * Workspace deep link, e.g. `/business?ws=ws-biz-bakery`. M06: the route comes
+ * from the per-kind configuration, so institutions and schools share
+ * `/institution` and community organizations use `/organization`. M07 adds
+ * `/government` for public offices and departments.
+ */
 export function workspaceHref(kind: WorkspaceKind, workspaceId: string): string {
-  return kind === 'bia' ? `/bia?ws=${workspaceId}` : `/business?ws=${workspaceId}`;
+  return `${routeForKind(kind)}?ws=${workspaceId}`;
 }
 
 /** Map deep link that selects one civic object, e.g. `/map?sel=w-bakery`. */
@@ -19,13 +25,18 @@ export function mapHref(objectId: string): string {
 /**
  * Which workspace route (if any) owns a civic object. Business objects link
  * to the Business workspace; the BIA organisation object links to the BIA
- * workspace. Everything else has no workspace and returns null.
+ * workspace; a public office (ward office) links to its government
+ * department. Everything else has no workspace and returns null. Workspace
+ * ids are namespaced by kind in the demo data (`ws-gov-…`), which is what
+ * the government branch reads. Closes M06-D3: the ward office used to point
+ * at a workspace id that did not exist.
  */
 export function workspaceHrefForObject(object: {
   kind: string;
   workspaceId?: string;
 }): string | null {
   if (!object.workspaceId) return null;
+  if (object.workspaceId.startsWith('ws-gov-')) return workspaceHref('government', object.workspaceId);
   if (object.kind === 'organization') return workspaceHref('bia', object.workspaceId);
   if (object.kind === 'business') return workspaceHref('business', object.workspaceId);
   return null;

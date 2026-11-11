@@ -13,3 +13,16 @@
 | I2 | Issue | Layer 2 workspaces, onboarding, posts and polls are not built | Team | Scheduled in M02, M04 to M08. Stubs make routes real now. | Planned |
 | I3 | Issue | Manual keyboard and screen-reader pass has not been done | Quality lead | axe scan passes for `/map`. Manual review scheduled in M09. | Open |
 | D1 | Dependency | Frozen compatibility profile and clarification log are in the control repository | Delivery lead | Check them against ADR-001 before the next gate. | Open |
+
+## M06 additions
+
+| ID | Type | Item | Owner | Response | Status |
+| --- | --- | --- | --- | --- | --- |
+| R6 | Risk | The role chosen at signup could be mistaken for real access control (M07: the "view as" switch is gone; the role choice is the demo now) | Team | Labelled a demo choice at signup and in Settings; no authentication exists. A production workspace service must check a real signed-in identity (M05-D3 stays open for production). | Open |
+| R7 | Risk | School and community-organization workspaces could be read as holding real people's data | Team | Demo names only; per-kind safeguard notices (no student records, no contact details or donations). Do not add real or student data to fixtures. | Mitigated |
+| I4 | Issue | New tenants have no pins on the shared map; their programs link only to existing map objects | Team | Fixtures left unchanged so the Windsor result counts pinned by the map tests do not move. Add tenant pins as a follow-up with the tests updated to derive counts from the fixtures. | Open |
+| I5 | Issue | Fixture `w-ward` points at workspace `ws-ward-sample`, which does not exist, so its "Open in workspace" link shows "Workspace not found" | Team | **Fixed in M07:** the fixture now points at `ws-gov-public-works`; `workspaceHrefForObject` routes `ws-gov-…` ids to `/government`. | Closed |
+| R8 | Risk | Request state could be read as lost data on reload | Team | Mitigated 2 Nov: request store and reported issues are saved in session storage (guarded). Other state (likes, saved items, workspace drafts and invitations) still resets on reload. Different tabs do not share state. | Partly mitigated |
+| I6 | Issue | Each page built its own mock services, so a report filed on one page was invisible on the next | Team | Fixed for requests and reported issues with a store the services share (`src/services/mock/requests.ts`). Other state (likes, saved items, offers drafted in a workspace) is still per page. | Partly fixed |
+| I7 | Issue | The request journey had not been clicked through in a real browser | Team | Done 2 Nov in headless Chromium against the production build (`docs/evidence/m06/`). The team's own browser test and the Playwright suite are still open. | Partly closed |
+| I8 | Issue | BIA directory listed every business in the city; reports were placed outside the corridor and routed by city | Team | Fixed 2 Nov: directory, events and counts limited to the boundary; routing by boundary. The corridor polygon is an illustrative placeholder and must be replaced with vetted geometry. | Fixed (placeholder geometry) |

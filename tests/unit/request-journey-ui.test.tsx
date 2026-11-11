@@ -8,6 +8,7 @@ import { WorkspaceClient } from '@/components/WorkspaceClient';
 import { RequestQueue } from '@/components/RequestQueue';
 import { createMockServices } from '@/services/mock';
 import { appRequestStore, createRequestStore } from '@/services/mock/requests';
+import { setOnboardingRole } from '@/lib/session';
 
 let query = '';
 vi.mock('next/navigation', () => ({
@@ -21,6 +22,9 @@ function reset() {
   appRequestStore.readEventIds.clear();
   appRequestStore.seq = 0;
   query = '';
+  // M07: the role comes from onboarding. Each test starts as a resident, and
+  // the ones that act inside a workspace sign up as that role first.
+  window.sessionStorage.clear();
 }
 
 beforeEach(reset);
@@ -47,6 +51,9 @@ describe('the request journey across screens (M06)', () => {
     market.unmount();
 
     // 2. The business owner sees it in the work queue and resolves it.
+    // M07: the workspace acts as the onboarded role, so sign up as the
+    // business owner first — the old default (first owner) is gone.
+    setOnboardingRole('business-owner');
     query = 'ws=ws-biz-bakery';
     const ws = render(<WorkspaceClient kind="business" />);
     await user.click(await screen.findByRole('button', { name: 'Requests' }));

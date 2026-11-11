@@ -4,25 +4,41 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { validateSignIn } from '@/lib/identity';
+import { getAccount, setCurrentAccount } from '@/lib/onboarding-db';
+import type { OnboardingAccount } from '@/lib/schemas';
+import { roleDef, setOnboardingRole } from '@/lib/session';
 
-type View = 'form' | 'pending' | 'denied' | 'expired' | 'recovery' | 'success';
+type View = 'form' | 'pending' | 'denied' | 'expired' | 'recovery' | 'not-found' | 'success';
 
 /**
- * M02 sign-in shell. No real authentication happens here: submitting a
- * valid-looking form shows the demo success state, and the denied / expired
- * / recovery states are previewable on purpose, so reviewers can see every
- * state the real identity service will one day produce.
+ * M02 sign-in shell. Submitting a valid-looking form looks the email up in
+ * the local database on this device (the account created at signup) and, when
+ * it is found, signs that account in and applies its role for this browser
+ * session. The password is not checked against anything — it is never
+ * stored — and the page says so. The denied / expired / recovery states are
+ * previewable on purpose, so reviewers can see every state the real identity
+ * service will one day produce.
  */
 export function SignInClient() {
   const [view, setView] = useState<View>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+  const [signedIn, setSignedIn] = useState<OnboardingAccount | null>(null);
 
-  function submit() {
+  async function submit() {
     const found = validateSignIn({ email, password });
     setErrors(found);
-    if (found.length === 0) setView('success');
+    if (found.length > 0) return;
+    const account = await getAccount(email);
+    if (!account) {
+      setView('not-found');
+      return;
+    }
+    await setCurrentAccount(account.email);
+    setOnboardingRole(account.role);
+    setSignedIn(account);
+    setView('success');
   }
 
   const inputStyle = { padding: 8, borderRadius: 8, border: '1px solid var(--line)', width: '100%' } as const;
@@ -34,8 +50,10 @@ export function SignInClient() {
         <p>Identity and profile</p>
         <h1>Sign in</h1>
         <p className="lede">
-          Demonstration shell only — no account is checked and no password is
-          sent anywhere. Everything here is invented demo data.
+          Sign-in checks the local database on this device — the account you
+          created at signup. Only the email is looked up; the password is not
+          checked against anything, because it is never stored. Everything here
+          is invented demo data.
         </p>
 
         {view === 'form' && (
@@ -102,10 +120,27 @@ export function SignInClient() {
             </div>
           </section>
         )}
+        {view === 'not-found' && (
+          <section aria-label="Account not found">
+            <h2>No account with this email</h2>
+            <p className="muted">
+              No demo account for {email || 'that email'} was found in the local database on this device. Sign up
+              first, or check the email — accounts are kept on the device where they were created.
+            </p>
+            <div className="btn-row">
+              <Link className="btn" href="/signup">Create a demo account</Link>
+              <button type="button" className="btn secondary" onClick={() => setView('form')}>Try again</button>
+            </div>
+          </section>
+        )}
         {view === 'success' && (
           <section aria-label="Signed in">
             <h2>Signed in (demo)</h2>
-            <p className="muted">You are signed in as a demo resident. No real account was checked.</p>
+            <p className="muted">
+              You are signed in as {signedIn ? signedIn.name : 'a demo account'}
+              {signedIn ? ` (${roleDef(signedIn.role).label})` : ''}. Your role is set for this browser session,
+              so workspaces know what you can do.
+            </p>
             <div className="btn-row">
               <Link className="btn" href="/profile">View your profile</Link>
               <Link className="btn secondary" href="/map">Open the map</Link>
