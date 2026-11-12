@@ -276,6 +276,120 @@ export const civicRequestSchema = z.object({
 });
 export type CivicRequest = z.infer<typeof civicRequestSchema>;
 
+/* ---------- M07 governance merge: public office and government department (governed response) ---------- */
+/* Ported from Saloni Patel's M07 tree (Nov 8). Her kinds were 'office'/'department'; the merged tree keeps
+ * fateh's single 'government' kind, so these schemas carry no kind of their own — a case's officeId and
+ * departmentId are workspace ids, and both are government workspaces here (Public Works verified, Parks
+ * onboarding). Requests and GovCases stay separate: a resident report becomes a CivicRequest, never a GovCase. */
+
+/**
+ * A case is one matter that reached a public office: a resident report, an inquiry or something the office raised
+ * itself. The office receives and routes it; a department works it. received -> routed -> in-progress -> closed,
+ * and a department may send it back (returned) for the office to route again.
+ */
+export const caseStatusSchema = z.enum(['received', 'routed', 'in-progress', 'returned', 'closed']);
+export type CaseStatus = z.infer<typeof caseStatusSchema>;
+
+export const caseSourceSchema = z.enum(['resident-report', 'inquiry', 'office']);
+export type CaseSource = z.infer<typeof caseSourceSchema>;
+
+export const casePrioritySchema = z.enum(['routine', 'urgent']);
+export type CasePriority = z.infer<typeof casePrioritySchema>;
+
+export const govCaseSchema = z.object({
+  id: z.string().min(1),
+  /** Human reference, e.g. CASE-1004. */
+  reference: z.string().regex(/^CASE-\d{4,}$/),
+  title: z.string().min(1).max(120),
+  summary: z.string().max(500),
+  cityId: z.string().min(1),
+  source: caseSourceSchema,
+  priority: casePrioritySchema,
+  status: caseStatusSchema,
+  /** The public office that received the case and owns routing. */
+  officeId: z.string().min(1),
+  /** The department it is routed to. Cleared when the department returns it. */
+  departmentId: z.string().min(1).optional(),
+  /** The map object the case is about, when there is one. */
+  objectId: z.string().optional(),
+  assignee: z.object({ id: z.string().min(1), name: z.string().min(1) }).optional(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  synthetic: z.literal(true),
+});
+export type GovCase = z.infer<typeof govCaseSchema>;
+
+/**
+ * Publication states of a public communication. draft -> in-review -> published; a reviewer can send it back
+ * (returned) with a reason; a published item can be withdrawn with a reason. Only `published` is public.
+ */
+export const publicationStateSchema = z.enum(['draft', 'in-review', 'returned', 'published', 'withdrawn']);
+export type PublicationState = z.infer<typeof publicationStateSchema>;
+
+export const communicationSchema = z.object({
+  id: z.string().min(1),
+  workspaceId: z.string().min(1),
+  /** A notice stands alone; a response answers a case. */
+  kind: z.enum(['notice', 'response']),
+  title: z.string().min(1).max(120),
+  body: z.string().min(1).max(1000),
+  caseId: z.string().min(1).optional(),
+  state: publicationStateSchema,
+  authorId: z.string().min(1),
+  authorName: z.string().min(1),
+  /** Who last reviewed it (approved, returned or withdrew). */
+  reviewerName: z.string().optional(),
+  /** The reviewer's reason for a return or withdrawal. */
+  reviewNote: z.string().optional(),
+  updatedAt: z.string().min(1),
+  publishedAt: z.string().optional(),
+  synthetic: z.literal(true),
+});
+export type Communication = z.infer<typeof communicationSchema>;
+
+export const auditActionSchema = z.enum([
+  'case-created',
+  'case-routed',
+  'case-accepted',
+  'case-returned',
+  'case-closed',
+  'comm-created',
+  'comm-submitted',
+  'comm-approved',
+  'comm-returned',
+  'comm-withdrawn',
+]);
+export type AuditAction = z.infer<typeof auditActionSchema>;
+
+/**
+ * One line of the audit record. Entries are only ever appended: the port has no way to edit or delete one.
+ * A refused attempt is recorded too (`denied`), so the record shows what was tried, not only what worked.
+ */
+export const auditEntrySchema = z.object({
+  id: z.string().min(1),
+  /** Position in the record. Gaps would show a missing entry. */
+  seq: z.number().int().positive(),
+  at: z.string().min(1),
+  /** The workspace the person was acting in. */
+  workspaceId: z.string().min(1),
+  /** Every workspace that can see this entry: the actor's, and the other side of a routed case. */
+  visibleTo: z.array(z.string().min(1)).min(1),
+  actorId: z.string().min(1),
+  actorName: z.string().min(1),
+  actorRole: memberRoleSchema,
+  action: auditActionSchema,
+  targetType: z.enum(['case', 'communication']),
+  targetId: z.string().min(1),
+  targetLabel: z.string().min(1),
+  outcome: z.enum(['done', 'denied']),
+  /** What happened, or why it was refused. */
+  detail: z.string().min(1),
+  fromState: z.string().optional(),
+  toState: z.string().optional(),
+  synthetic: z.literal(true),
+});
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
+
 /**
  * M07 addendum — the local database for onboarding. A demo account is a
  * plain record: who signed up, which branch, which role. It NEVER contains

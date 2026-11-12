@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — M07 governance merge (11 Nov 2026)
+
+- Saloni Patel's governance layer merged into the Week 7 tree (see `MERGE_NOTES.md` for the full record). New `GovernancePort` (`src/services/ports/index.ts`) with a mock store (`src/services/mock/governance.ts`): cases (received → routed → in-progress → returned/closed, with a note required to return or close), communications (draft → in review → published, with a second-person four-eyes approval, return and withdraw with reasons), a public view that only ever shows published items and counts what is withheld, and an append-only audit record with a CSV download. New tabs on the `government` kind only: Cases, Communications, Public, Audit (`src/components/gov/`).
+- Decisions: no ward-office tenant (Public Works acts as the department); no `office`/`department` kinds — the single `government` kind only; requests and GovCases stay separate; ADR-017/018 kept (no RolesPanel, `/representative` stays a profile page, no "View as" switch). The governance kind gates and seeds were adapted to the merged tenants (Public Works verified, Parks onboarding as the refusal target); the gov panels were simplified to the government behavior.
+- Tests: 57 governance tests rewritten for the merged model (`governance-port.test.ts` 29, `governance-rules.test.ts` 15, `governance-ui.test.tsx` 12) + 1 gov-tab assertion in `permissions.test.ts`; 1 existing M07 test updated on purpose (the government tab list now includes the 4 gov tabs). Real run: lint 0, typecheck pass, 218 of 218 tests in 23 files, production build 35 pages (34 routes + `/_not-found`). Playwright and the axe scan were not run.
+- Not changed: authentication (still none), the request store (still session only), the onboarding local database (unchanged), map fixtures (the government tenants have no pins yet).
+
 ## Unreleased — M07 Public office & government department workspace
 
 - Same reusable shell, one more tenant type: `kind` now includes `government`. Per-kind configuration in `src/lib/workspace-config.ts` (tabs, role names, wording, safeguards). `/government` serves the department tenants (`?ws=` picks one). New tenants: Sample City of Windsor — Public Works (verified) and Sample Parks & Recreation (onboarding), with members, tasks and services. The dashboard shows a "Requests needing attention" card.

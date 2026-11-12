@@ -1,5 +1,10 @@
 import type {
+  AuditEntry,
   BoundaryCollection,
+  CasePriority,
+  CaseSource,
+  Communication,
+  GovCase,
   CivicRequest,
   RequestKind,
   City,
@@ -18,6 +23,7 @@ import type {
 import type { ActorContext } from '@/lib/permissions';
 import type { ObjectQuery } from '@/lib/query';
 import type { HandlerAction } from '@/lib/requests';
+import type { CaseStep, CommStep, GovActor } from '@/lib/governance';
 
 /**
  * Service ports. The UI only ever talks to these interfaces. The mock adapters read synthetic JSON;
@@ -178,6 +184,51 @@ export interface RequestPort {
   reopen(id: string, note: string): Promise<CivicRequest>;
 }
 
+/**
+ * M07 governance merge (from Saloni Patel's M07 tree): cases that reach a public office, routing to government
+ * departments, public communications with publication states, and the audit record of all of it. The mock keeps
+ * the state in memory (saved in the browser session, shared between pages); a production adapter would call the
+ * governed case and publication services. Rules enforced here, not in components: every mutation needs an acting
+ * person (`GovActor`), a restricted workspace is read-only, only a verified, same-city department can take a case,
+ * a note is needed where the other side needs a reason, the author of a communication cannot approve it
+ * (four-eyes), and every attempt that is refused for permission or rule reasons is written to the audit
+ * record just like the ones that worked. The record is append-only: this interface has no way to edit or
+ * delete an entry.
+ *
+ * Merged-tree note: the port takes `officeId`/`departmentId` strings, so it runs against fateh's `government`
+ * tenants without a kind change — Public Works is both the office that receives a case and the department that
+ * works it. The mock's kind gates accept `government` as a governed kind (see `src/services/mock/governance.ts`).
+ */
+export interface GovernancePort {
+  /** Cases an office received (`officeId`) or that were routed to a department (`departmentId`). Newest first. */
+  cases(filter: { officeId: string } | { departmentId: string }): Promise<GovCase[]>;
+  /** Null (not a throw) for an unknown id. */
+  getCase(id: string): Promise<GovCase | null>;
+  /** Log a new case at an office. Rejects on an empty title. */
+  createCase(
+    input: { title: string; summary: string; source: CaseSource; priority: CasePriority; objectId?: string },
+    actor: GovActor,
+  ): Promise<GovCase>;
+  /** Route a received or returned case to a department. Refused if the department cannot take cases. */
+  routeCase(caseId: string, departmentId: string, actor: GovActor, note?: string): Promise<GovCase>;
+  /** A department accepts, returns or closes; an office may close a case it has not routed. */
+  caseStep(caseId: string, step: Exclude<CaseStep, 'route'>, actor: GovActor, note?: string): Promise<GovCase>;
+
+  /** Communications written in a workspace, newest first. */
+  communications(workspaceId: string): Promise<Communication[]>;
+  /** What the public sees for an office: its published items and published responses to its cases. */
+  publicFeed(officeId: string): Promise<Communication[]>;
+  createCommunication(
+    input: { workspaceId: string; title: string; body: string; caseId?: string },
+    actor: GovActor,
+  ): Promise<Communication>;
+  /** Submit, approve (publish), return or withdraw. Approval is refused for the author. */
+  communicationStep(id: string, step: CommStep, actor: GovActor, note?: string): Promise<Communication>;
+
+  /** The audit entries a workspace can see, newest first. Read-only. */
+  audit(workspaceId: string): Promise<AuditEntry[]>;
+}
+
 export interface Services {
   objects: CivicObjectPort;
   boundaries: BoundaryPort;
@@ -186,4 +237,5 @@ export interface Services {
   social: SocialPort;
   workspaces: WorkspacePort;
   requests: RequestPort;
+  governance: GovernancePort;
 }

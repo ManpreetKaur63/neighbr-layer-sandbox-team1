@@ -18,6 +18,10 @@ export type WorkspaceTab =
   | 'programs'
   | 'events'
   | 'requests'
+  | 'cases'
+  | 'communications'
+  | 'public'
+  | 'audit'
   | 'tasks';
 
 export interface KindConfig {
@@ -30,6 +34,8 @@ export interface KindConfig {
   roleLabels: Record<MemberRole, string>;
   /** Wording for the programs tab (kinds without listings and offers). */
   programs?: { heading: string; help: string; noun: string };
+  /** M07 governance merge: kinds that run governed cases, publication states and an audit record. */
+  governed?: boolean;
   /** Kind-specific safeguards shown on the Overview tab. */
   safeguards: string[];
 }
@@ -128,12 +134,17 @@ export const KIND_CONFIG: Record<WorkspaceKind, KindConfig> = {
   government: {
     label: 'Public office / government department',
     route: '/government',
+    governed: true,
     tabs: [
       { id: 'overview', label: 'Dashboard' },
+      { id: 'cases', label: 'Cases' },
+      { id: 'communications', label: 'Communications' },
+      { id: 'public', label: 'Public view' },
       { id: 'members', label: 'Members' },
       { id: 'programs', label: 'Services' },
       { id: 'requests', label: 'Requests' },
       ...COMMON_END,
+      { id: 'audit', label: 'Audit record' },
     ],
     roleLabels: { owner: 'Department head', staff: 'Department staff', member: 'Partner (view only)' },
     programs: {

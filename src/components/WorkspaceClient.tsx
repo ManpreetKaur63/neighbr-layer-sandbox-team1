@@ -6,6 +6,13 @@ import { useSearchParams } from 'next/navigation';
 import { StateBoundary } from './StateBoundary';
 import { WorkspaceShell } from './WorkspaceShell';
 import { RequestQueue } from './RequestQueue';
+import { GovDashboard } from './gov/GovDashboard';
+import { CasesPanel } from './gov/CasesPanel';
+import { CommsPanel } from './gov/CommsPanel';
+import { PublicView } from './gov/PublicView';
+import { AuditPanel } from './gov/AuditPanel';
+import { CaseTasks } from './gov/CaseTasks';
+import type { GovActor } from '@/lib/governance';
 import { createMockServices } from '@/services/mock';
 import type { HandlerActor } from '@/services/ports';
 import { mapHref, workspaceHrefForObject } from '@/lib/workspace';
@@ -70,7 +77,11 @@ export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: 
   const [cityName, setCityName] = useState('');
   const [failed, setFailed] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<WorkspaceTab>('overview');
+  // `?tab=` opens a tab directly (an invalid or unavailable one falls back to the overview below).
+  const [tab, setTab] = useState<WorkspaceTab>(() => (searchParams.get('tab') as WorkspaceTab | null) ?? 'overview');
+  // M07 governance merge: the case a dashboard link opened, and the case a response is being written for.
+  const [openCaseId, setOpenCaseId] = useState<string | null>(null);
+  const [draftCaseId, setDraftCaseId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offerTitle, setOfferTitle] = useState('');
@@ -152,6 +163,12 @@ export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: 
     ? { role: actor.role, memberStatus: actor.status }
     : { role: 'member', memberStatus: 'active' };
   const handlerActor: HandlerActor = { ...actorContext, name: actor?.name ?? personaDef.label };
+  // M07 governance merge: the gov panels act as the same resolved person. There is no "view as" picker
+  // (ADR-017) — on /government the city-staff role resolves to the department staff member (m-gov-2), so
+  // owner-only steps such as approving a publication are shown as unavailable, with the reason.
+  const governed = config.governed === true;
+  const govActor: GovActor = { ...actorContext, id: actor?.id ?? 'no-member', name: actor?.name ?? personaDef.label, workspaceId: workspace?.id ?? '' };
+  const workspaceName = (id: string | undefined) => siblings.find((w) => w.id === id)?.name ?? 'No department';
   const can = (action: PermissionAction): PermissionDecision =>
     workspace ? decide(action, actorContext, workspace.status) : { allowed: false, reason: 'No workspace is loaded.' };
 
@@ -208,6 +225,18 @@ export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: 
           {!viewBlocked && activeTab === 'overview' && (
             <section aria-label="Dashboard">
               <h2>Dashboard</h2>
+              {governed && (
+                <GovDashboard
+                  services={services}
+                  workspace={workspace}
+                  actor={govActor}
+                  departmentName={workspaceName}
+                  onOpen={(t, id) => {
+                    if (t === 'cases') setOpenCaseId(id ?? null);
+                    setTab(t);
+                  }}
+                />
+              )}
               <div className="pill-row">
                 <span className="pill">{members.length} members</span>
                 {programKind ? (
@@ -283,6 +312,31 @@ export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: 
               </div>
             </section>
           )}
+
+          {!viewBlocked && governed && activeTab === 'cases' && (
+            <CasesPanel
+              key={`${workspace.id}:${openCaseId ?? ''}`}
+              services={services}
+              workspace={workspace}
+              actor={govActor}
+              allWorkspaces={siblings}
+              initialCaseId={openCaseId}
+              onDraftResponse={(id) => {
+                setDraftCaseId(id);
+                setTab('communications');
+              }}
+            />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'communications' && (
+            <CommsPanel key={`${workspace.id}:${draftCaseId ?? ''}`} services={services} workspace={workspace} actor={govActor} initialCaseId={draftCaseId} />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'public' && (
+            <PublicView services={services} workspace={workspace} departmentName={workspaceName} />
+          )}
+
+          {!viewBlocked && governed && activeTab === 'audit' && <AuditPanel services={services} workspace={workspace} />}
 
           {!viewBlocked && activeTab === 'members' && (
             <section aria-label="Members">
@@ -577,6 +631,16 @@ export function WorkspaceClient({ kind, kinds }: { kind: WorkspaceKind; kinds?: 
                   )}
                 </article>
               ))}
+              {governed && (
+                <CaseTasks
+                  services={services}
+                  workspace={workspace}
+                  onOpen={(id) => {
+                    setOpenCaseId(id);
+                    setTab('cases');
+                  }}
+                />
+              )}
               <Reason decision={can('work')} />
             </section>
           )}

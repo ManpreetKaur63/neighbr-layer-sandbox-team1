@@ -102,4 +102,18 @@ describe('per-kind workspace configuration (M06)', () => {
   it('the schools carry a no-student-records safeguard', () => {
     expect(KIND_CONFIG.school.safeguards.join(' ')).toMatch(/No student records/);
   });
+
+  it('the governance tabs live on the government kind only (merged M07)', () => {
+    // Cases, communications, public view and audit come from Saloni's governance layer, ported onto
+    // fateh's 'government' kind. No other kind is governed, and there is still no Roles tab anywhere.
+    const govTabs = ['cases', 'communications', 'public', 'audit'] as const;
+    const gov = KIND_CONFIG.government.tabs.map((t) => t.id as string);
+    for (const tab of govTabs) expect(gov, tab).toContain(tab);
+    expect(KIND_CONFIG.government.governed).toBe(true);
+    for (const [kind, cfg] of Object.entries(KIND_CONFIG)) {
+      if (kind === 'government') continue;
+      expect(cfg.governed ?? false, kind).toBe(false);
+      for (const tab of govTabs) expect(cfg.tabs.map((t) => t.id as string), `${kind}/${tab}`).not.toContain(tab);
+    }
+  });
 });
